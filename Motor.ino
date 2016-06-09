@@ -2,6 +2,7 @@
 #define    INA          8
 #define    INB         12
 #define    M1_PWM       6
+#define    CURRENT_SENSE_PIN A4   // PIN for current sensor
 
 // Closed loop definitions
 #define    IN_P           0.01   // Inner loop proportional gain for closing the motor angle error (0.05)
@@ -12,6 +13,7 @@ void motor_setup() {
   pinMode(INA, OUTPUT);
   pinMode(INB, OUTPUT);
   pinMode(M1_PWM, OUTPUT);
+  pinMode(CURRENT_SENSE_PIN, INPUT);
   
   // PWM frequency
 //  TCCR1B = TCCR1B & 0b11111000 | 0x01;
@@ -45,6 +47,13 @@ void SetMotorSpeed(float cycle) {
   analogWrite(M1_PWM,PWMval);
 }
 
+int getCurrentSense(CURRENT_SENSE_PIN) {
+  CurrentSense = analogread(CURRENT_SENSE_PIN);
+  //CurrentSenseAmp = map(CurrentSense, 0, 1023, 0, 180);     // scale it to a amper acale??
+  //TODO: scale the rea to Amper units!!
+
+  return CurrentSenseAmp
+}
 
 void M1_PID() {
   enc_update();
