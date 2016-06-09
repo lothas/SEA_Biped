@@ -1,9 +1,14 @@
+// TODO Rea: Write code for reading current sensor (output Amp)
+// Work on ways of adding the current reading to the control loop (Motor) + protection
+// Add code for foot servo
+  
 #include "MyVector.h"
 
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
+#define MOTOR_DEBUG
 #define PC_COMM_DEBUG
-#define CL_DEBUG
+//#define CL_DEBUG
 
 #define    PC_COMM_SPEED   115200
 #define    PC_STX          's'
@@ -15,10 +20,6 @@
 #define    OUT_HOME    610.0    // Output angle where torque = 0
 #define    OUT_DEAD      7.0    // Dead zone for output angle
 #define    MAX_DELTA    22.0    // Maximum angle error to apply
-
-// Random weights
-#define    MAX_RANDOM    220
-#define    MIN_RANDOM     30
 
 //Setting    Divisor    Frequency
 //0x01           1        31250
@@ -32,22 +33,14 @@ volatile float M1_des_angle = 0; // Motor angle variable
 volatile float des_Torque = 0;
 MyVector Out_angle_vec(5);
 
+float M1_cycle = 0;
+float M1_cycle_delta = 0.05;
+
 // Control Modes
 char pc_comm[8] = {0,0,0,0,0,0,0,0};
 int comm_idx = 0;
-int op_mode = 0;
+int op_mode = 1;
 int pc_input = 0;
-
-// Pull-return variables
-float pull_base = 0;
-float pull_limit = -40;
-
-volatile int pull_status = 0;
-volatile int pull_counter = 0;
-
-// double random(min, max)
-unsigned long init_delay = 2000000;
-int initializing = 1;
 
 extern volatile float M1_angle;
 extern volatile float M1_angle_prev;
@@ -57,34 +50,36 @@ extern volatile unsigned long T_prev;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
-
-  pinMode(13,OUTPUT);
-  digitalWrite(13,HIGH);
   
-  BT_setup();
+//  BT_setup();
 
   motor_setup();
   
   encoder_setup();
+  
+  pinMode(13,OUTPUT);
+  for (int i = 0; i<3; ++i) {
+    digitalWrite(13,HIGH);
+    delay(170);
+    digitalWrite(13,LOW);
+    delay(170);
+  }
 }
 
 void loop() {
-  if (initializing) {
-    if (T_cur-init_delay<0) {
-      op_mode = 1;
-      des_Torque = 80;
-    }
-    else {
-      op_mode = 1;
-      des_Torque = 80;
-
-      pull_base = M1_angle;
-      pull_limit -= M1_angle;
-      
-      initializing = 0;
-    }
-  }
+#ifdef MOTOR_DEBUG
+  if (op_mode > 0) {
+    M1_cycle += M1_cycle_delta;
+    if (abs(M1_cycle)>0.6) M1_cycle_delta *= -1;
   
+    SetMotorSpeed(M1_cycle);
+    delay(100);
+  }
+  else {
+    SetMotorSpeed(0);
+  }
+#endif
+
 #ifdef PC_COMM_DEBUG
   if(Serial.available()) {
     pc_comm[comm_idx] = Serial.read();

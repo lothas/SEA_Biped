@@ -1,11 +1,11 @@
 // Motor controller definitions
 #define    INA          8
-#define    INB          9
-#define    M1_PWM      10
+#define    INB         12
+#define    M1_PWM       6
 
 // Closed loop definitions
-#define    IN_P           0.05   // Inner loop proportional gain for closing the motor angle error
-#define    IN_D        1000.0    // Inner loop proportional gain for closing the motor angle error
+#define    IN_P           0.01   // Inner loop proportional gain for closing the motor angle error (0.05)
+#define    IN_D        0000.0    // Inner loop derivative gain for closing the motor angle error (1000)
 
 // Motor setup
 void motor_setup() {
