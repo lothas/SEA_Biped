@@ -3,6 +3,7 @@
 // Add code for foot servo
   
 #include "MyVector.h"
+#include "Servo.h"
 
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
@@ -56,6 +57,8 @@ void setup()  {
   motor_setup();
   
   encoder_setup();
+
+  feetServo_setup();
   
   pinMode(13,OUTPUT);
   for (int i = 0; i<3; ++i) {

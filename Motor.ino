@@ -20,6 +20,14 @@ void motor_setup() {
   TCCR1B = _BV(CS00); // change the PWM frequency to 31.25kHz   - pins 9 & 10 
 }
 
+int getCurrentSense(CURRENT_SENSE_PIN) {
+  CurrentSense = analogread(CURRENT_SENSE_PIN);
+  //CurrentSenseAmp = map(CurrentSense, 0, 1023, 0, 180);     // scale it to a amper acale??
+  //TODO: scale the rea to Amper units!!
+
+  return CurrentSenseAmp
+}
+
 void SetMotorSpeed(float cycle) {
   // Turn the motor FWD, BWD or off
   if (cycle == 0) {
@@ -47,13 +55,6 @@ void SetMotorSpeed(float cycle) {
   analogWrite(M1_PWM,PWMval);
 }
 
-int getCurrentSense(CURRENT_SENSE_PIN) {
-  CurrentSense = analogread(CURRENT_SENSE_PIN);
-  //CurrentSenseAmp = map(CurrentSense, 0, 1023, 0, 180);     // scale it to a amper acale??
-  //TODO: scale the rea to Amper units!!
-
-  return CurrentSenseAmp
-}
 
 void M1_PID() {
   enc_update();
