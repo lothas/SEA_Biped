@@ -22,7 +22,7 @@ MyVector::MyVector(int vec_length, float * vec_in) {
   }
 }
 
-float MyVector::get_element(unsigned int rel_idx) {
+float MyVector::get_by_id(unsigned int rel_idx) {
   return vec_array[(idx+rel_idx)%vec_len];
 }
 
@@ -35,10 +35,10 @@ float MyVector::get_avg() {
 }
 
 float MyVector::get_avg_diff() {
-  return float(get_element(vec_len-1)-get_element(0))/float(vec_len-1);
+  return float(get_by_id(vec_len-1)-get_by_id(0))/float(vec_len-1);
 }
 
-void MyVector::add_element(float val) {
+void MyVector::push(float val) {
   vec_array[idx] = val;
   ++idx;
   if (idx >= vec_len) idx = 0;

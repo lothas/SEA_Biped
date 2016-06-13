@@ -7,6 +7,7 @@
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
 #define MOTOR_DEBUG
+#define ENCODER_DEBUG
 #define PC_COMM_DEBUG
 //#define CL_DEBUG
 
@@ -29,12 +30,18 @@
 //0x05        1024        30.517578125
 
 // SEA variables
-volatile float M1_des_angle = 0; // Motor angle variable
-volatile float des_Torque = 0;
-MyVector Out_angle_vec(5);
+volatile float m1_des_angle = 0; // Motor angle variable
+volatile float des_torque = 0;
 
-float M1_cycle = 0;
-float M1_cycle_delta = 0.05;
+extern volatile float m1_angle;
+extern volatile float m1_angle_prev;
+extern volatile float m1_angle_delta;
+extern volatile unsigned long t_cur;
+extern volatile unsigned long t_prev;
+MyVector out_angle_vec(5);
+
+float m1_cycle = 0;
+float m1_cycle_delta = 0.05;
 
 // Control Modes
 char pc_comm[8] = {0,0,0,0,0,0,0,0};
@@ -42,20 +49,14 @@ int comm_idx = 0;
 int op_mode = 1;
 int pc_input = 0;
 
-extern volatile float M1_angle;
-extern volatile float M1_angle_prev;
-extern volatile float M1_angle_delta;
-extern volatile unsigned long T_cur;
-extern volatile unsigned long T_prev;
-
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
   
-//  BT_setup();
+//  setup_bluetooth();
 
-  motor_setup();
+  setup_motor();
   
-  encoder_setup();
+  setup_encoders();
   
   pinMode(13,OUTPUT);
   for (int i = 0; i<3; ++i) {
@@ -69,15 +70,22 @@ void setup()  {
 void loop() {
 #ifdef MOTOR_DEBUG
   if (op_mode > 0) {
-    M1_cycle += M1_cycle_delta;
-    if (abs(M1_cycle)>0.6) M1_cycle_delta *= -1;
-  
-    SetMotorSpeed(M1_cycle);
+    m1_cycle += m1_cycle_delta;
+    if (abs(m1_cycle)>0.6) m1_cycle_delta *= -1;
+
+    if (m1_cycle>0) set_motor_speed(0.5);
+    else set_motor_speed(-0.5);
     delay(100);
   }
   else {
-    SetMotorSpeed(0);
+    set_motor_speed(0);
   }
+#endif
+
+#ifdef ENCODER_DEBUG
+  update_encoders();
+  Serial.print("Encoder 1: ");
+  Serial.println(m1_angle);
 #endif
 
 #ifdef PC_COMM_DEBUG
@@ -92,7 +100,7 @@ void loop() {
     else {
       if (pc_comm[comm_idx] == PC_ETX || comm_idx>=7) {
         // Command received
-        get_pc_command(pc_comm);
+        read_pc_command(pc_comm);
         comm_idx = 0;
       }
       else {
@@ -104,96 +112,48 @@ void loop() {
 
 #ifdef CL_DEBUG
   if (op_mode == 1) {
-    // Check pull status
-    if (pull_status == 0) {
-      // Waiting for pull
-      if (M1_angle-M1_angle_prev<0) { // M1 angle decreases while pulling
-        pull_counter++;
-      }
-      else {
-        pull_counter--;
-      }
-      if (pull_counter>10) {
-        pull_status = 1; // going up
-        pull_counter = 0;
-        Serial.println("Going up");
-      }
-    }
-    if (pull_status == 1) { // going up
-      if (M1_angle<pull_limit) { // M1 angle decreases while pulling
-        if (M1_angle-M1_angle_prev>0) { // M1 angle increases while returning
-          pull_counter++;
-        }
-        else {
-          pull_counter--;
-        }
-        if (pull_counter>10) {
-          pull_status = -1; // going down
-          pull_counter = 0;
-          des_Torque += 0.5*(0.8*MAX_RANDOM-des_Torque);
-          Serial.println("Going down");
-        }
-      }
-    }
-    if (pull_status == -1) { // going down
-      if (M1_angle>pull_base-5) { // M1 angle increases while returning
-        pull_counter++;
-      }
-      else {
-        pull_counter--;
-      }
-      if (pull_counter>10) {
-        pull_status = 0; // stopped
-        pull_counter = 0;
-        des_Torque = random(MIN_RANDOM,MAX_RANDOM);
-        Serial.print("New weight: ");
-        Serial.println(des_Torque);
-      }
-    }
-    if (pull_counter<0) pull_counter = 0;
-    
-    float Out_angle = Out_angle_vec.get_avg();
-    float P_comp = 0;
-    float D_comp = 0;
-    if (Out_angle > OUT_HOME + des_Torque + OUT_DEAD) {
-      P_comp = -OUT_P*(Out_angle - OUT_HOME - des_Torque - OUT_DEAD);
-      D_comp = OUT_D*Out_angle_vec.get_avg_diff();
+    float out_angle = out_angle_vec.get_avg();
+    float p_comp = 0;
+    float d_comp = 0;
+    if (out_angle > OUT_HOME + des_torque + OUT_DEAD) {
+      p_comp = -OUT_P*(out_angle - OUT_HOME - des_torque - OUT_DEAD);
+      d_comp = OUT_D*out_angle_vec.get_avg_diff();
       
-      M1_des_angle = M1_angle + P_comp + D_comp;
+      m1_des_angle = m1_angle + p_comp + d_comp;
     }
     else {
-      if (Out_angle < OUT_HOME + des_Torque - OUT_DEAD) {
-        P_comp = -OUT_P*(Out_angle - OUT_HOME - des_Torque + OUT_DEAD);
-        D_comp = OUT_D*Out_angle_vec.get_avg_diff();
+      if (out_angle < OUT_HOME + des_torque - OUT_DEAD) {
+        p_comp = -OUT_P*(out_angle - OUT_HOME - des_torque + OUT_DEAD);
+        d_comp = OUT_D*out_angle_vec.get_avg_diff();
         
-        M1_des_angle = M1_angle + P_comp + D_comp;
+        m1_des_angle = m1_angle + p_comp + d_comp;
       }
       else {
-        M1_des_angle = M1_angle;
+        m1_des_angle = m1_angle;
       }
     }
 
-    if (M1_des_angle > M1_angle + MAX_DELTA) M1_des_angle = M1_angle + MAX_DELTA;
-    if (M1_des_angle < M1_angle - MAX_DELTA) M1_des_angle = M1_angle - MAX_DELTA;
+    if (m1_des_angle > m1_angle + MAX_DELTA) m1_des_angle = m1_angle + MAX_DELTA;
+    if (m1_des_angle < m1_angle - MAX_DELTA) m1_des_angle = m1_angle - MAX_DELTA;
 
-    M1_PID();
+    m1_pid();
   }
   else {
-    SetMotorSpeed(0);
+    set_motor_speed(0);
   }
 #endif
   
-  //sendBlueToothData(); 
+  //send_bluetooth_data(); 
 }
 
-int UnsIntDiff(unsigned int A, unsigned int B) {
+int uns_int_diff(unsigned int A, unsigned int B) {
   int diff = A - B;
   if (diff<-512) diff+=1024;
   if (diff>512) diff-=1024;
   return diff;
 }
 
-void get_pc_command(char cmd[8]) {
+void read_pc_command(char cmd[8]) {
   Serial.print("Received command: ");
   pc_input = 0;
   
@@ -208,7 +168,7 @@ void get_pc_command(char cmd[8]) {
   }
   
   if (idx == 1) {
-    SetMotorSpeed(0);
+    set_motor_speed(0);
     op_mode = 0;
     digitalWrite(13,LOW);
     Serial.println("EMERGENCY STOP");
@@ -219,7 +179,7 @@ void get_pc_command(char cmd[8]) {
       digitalWrite(13,HIGH);
       Serial.print("New desired speed: ");
       Serial.println(pc_input-200);
-      des_Torque = pc_input-200;
+      des_torque = pc_input-200;
     }
   }
 }
