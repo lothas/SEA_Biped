@@ -4,8 +4,8 @@
 #define    M1_PWM       6
 
 // Closed loop definitions
-#define    IN_P           0.01   // Inner loop proportional gain for closing the motor angle error (0.05)
-#define    IN_D        0000.0    // Inner loop derivative gain for closing the motor angle error (1000)
+#define    IN_P           0.1    // Inner loop proportional gain for closing the motor angle error (0.05)
+#define    IN_D        5000.0    // Inner loop derivative gain for closing the motor angle error (1000)
 
 // Motor setup
 void setup_motor() {
@@ -49,7 +49,7 @@ void set_motor_speed(float cycle) {
 void m1_pid() {
   update_encoders();
   
-  float error = m1_des_angle - m1_angle;
+  float error = m1_angle - m1_des_angle;
   float er_dt = (m1_angle - m1_angle_prev)/float(t_cur - t_prev);
   
   float u = -IN_P*error;;
@@ -65,7 +65,7 @@ void m1_pid() {
 //    }
 //  }
 
-  float u_deriv = IN_D*er_dt;
+  float u_deriv = -IN_D*er_dt;
 //  Serial.print("U = ");
 //  Serial.println(U);
 //  Serial.print("U_deriv = ");

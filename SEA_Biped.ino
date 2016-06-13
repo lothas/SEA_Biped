@@ -6,8 +6,9 @@
 
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
-#define MOTOR_DEBUG
+//#define MOTOR_DEBUG
 #define ENCODER_DEBUG
+#define INNER_LOOP_DEBUG
 #define PC_COMM_DEBUG
 //#define CL_DEBUG
 
@@ -86,6 +87,20 @@ void loop() {
   update_encoders();
   Serial.print("Encoder 1: ");
   Serial.println(m1_angle);
+#endif
+
+#ifdef INNER_LOOP_DEBUG
+  if (op_mode > 0) {
+    m1_cycle += 0.03*m1_cycle_delta;
+    if (abs(m1_cycle)>1) m1_cycle_delta *= -1;
+
+    m1_des_angle = 180*m1_cycle;
+    
+//    Serial.print("Desired M1 angle: ");
+//    Serial.println(m1_des_angle);
+
+    m1_pid();
+  }
 #endif
 
 #ifdef PC_COMM_DEBUG
