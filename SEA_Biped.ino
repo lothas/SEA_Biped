@@ -1,6 +1,9 @@
-// TODO Rea: Write code for reading current sensor (output Amp)
-// Work on ways of adding the current reading to the control loop (Motor) + protection
-// Add code for foot servo
+// TODO Rea:
+// Write code for reading current sensor (output Amp) : [done]
+// Add code for foot servo: [done]
+// Work on ways of adding the current reading to over current protection: [done]
+// Work on ways of adding the current reading to the control loop (Motor): [....TODO...]
+
   
 #include "MyVector.h"
 #include "Servo.h"
@@ -48,6 +51,10 @@ extern volatile float M1_angle_prev;
 extern volatile float M1_angle_delta;
 extern volatile unsigned long T_cur;
 extern volatile unsigned long T_prev;
+
+// Current sensing
+float I_motor
+#define MAX_ALLOWED_MOTOR_CURRENT 4 
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -186,7 +193,15 @@ void loop() {
   }
 #endif
   
-  //sendBlueToothData(); 
+  //sendBlueToothData();
+
+  // Current sensing and emergency stop:
+  I_motor = getCurrentSense();
+  if  I_motor > MAX_ALLOWED_MOTOR_CURRENT {
+    emergencySTOP();
+    Serial.println("breaking from main loop()");
+    break;  
+  }
 }
 
 int UnsIntDiff(unsigned int A, unsigned int B) {

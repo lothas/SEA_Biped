@@ -3,6 +3,7 @@
 #define    INB         12
 #define    M1_PWM       6
 #define    CURRENT_SENSE_PIN A4   // PIN for current sensor
+#define CURRENT_SENSE_SLOPE 140 // K = V_read/I_out [mV]/[A]  ==> I_out = V_read/K
 
 // Closed loop definitions
 #define    IN_P           0.01   // Inner loop proportional gain for closing the motor angle error (0.05)
@@ -20,12 +21,24 @@ void motor_setup() {
   TCCR1B = _BV(CS00); // change the PWM frequency to 31.25kHz   - pins 9 & 10 
 }
 
-int getCurrentSense(CURRENT_SENSE_PIN) {
-  CurrentSense = analogread(CURRENT_SENSE_PIN);
-  //CurrentSenseAmp = map(CurrentSense, 0, 1023, 0, 180);     // scale it to a amper acale??
-  //TODO: scale the rea to Amper units!!
+float getCurrentSense() {
+  
+  float CurrentSense_V_SENSE
+  float CurrentSenseAmper
+  
+  CurrentSense = analogread(CURRENT_SENSE_PIN); // a value from 0 to 1023
+  CurrentSense_V_SENSE = map(CurrentSense, 0, 1023, 0, 5); // map to inrements of 5[V]/1024[units] = 0.0049[V]
+  
+  CurrentSenseAmper = ( (CurrentSense_V_SENSE*1000) / CURRENT_SENSE_SLOPE ); // 1000 is to convert [mV] to [V]
 
-  return CurrentSenseAmp
+  return CurrentSenseAmper
+}
+
+void emergencySTOP() {
+  // stopping the motor in case of over current
+  digitalWrite(INA,LOW);
+  digitalWrite(INB,LOW);
+  Serial.println("emergency STOP!!!   over current!!! ");
 }
 
 void SetMotorSpeed(float cycle) {
