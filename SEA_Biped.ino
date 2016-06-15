@@ -39,7 +39,7 @@ extern volatile float m1_angle_prev;
 extern volatile float m1_angle_delta;
 extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
-MyVector out_angle_vec(5);
+extern volatile float out_angle;
 
 float m1_cycle = 0;
 float m1_cycle_delta = 0.05;
@@ -85,16 +85,26 @@ void loop() {
 
 #ifdef ENCODER_DEBUG
   update_encoders();
-  Serial.print("Encoder 1: ");
-  Serial.println(m1_angle);
+//  Serial.print("Encoder 1: ");
+//  Serial.println(m1_angle);
+//  Serial.print("Encoder 2: ");
+  Serial.println(String(millis()) + " " + String(out_angle));
+  delay(100);
 #endif
 
 #ifdef INNER_LOOP_DEBUG
   if (op_mode > 0) {
-    m1_cycle += 0.03*m1_cycle_delta;
-    if (abs(m1_cycle)>1) m1_cycle_delta *= -1;
+    m1_cycle += 0.01*m1_cycle_delta;
+    if (m1_cycle>1) {
+      m1_cycle_delta *= -1;
+      delay(5000);
+    }
+    if (m1_cycle<0) {
+      m1_cycle_delta *= -1;
+      delay(5000);
+    }
 
-    m1_des_angle = 180*m1_cycle;
+    m1_des_angle = 360*m1_cycle;
     
 //    Serial.print("Desired M1 angle: ");
 //    Serial.println(m1_des_angle);
