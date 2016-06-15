@@ -7,8 +7,12 @@
 #define    ENC1_CPD    6.25    // counts per degree
 
 // Output encoder definitions
-#define    ENC2        A1
-#define    ENC2_CPD    18.26   // counts per degree
+#define    ENC2        A0
+#define    ENC2_CPD    1   // counts per degree
+
+//Encoder 1: -152.96
+//Encoder 2: -978.40
+
 
 // Motor angle variable
 volatile int enc1_count = 0;
@@ -19,6 +23,7 @@ volatile unsigned long t_cur = 0;
 volatile unsigned long t_prev = 0;
 
 // Output angle variables
+MyVector out_angle_vec(5);
 volatile float out_angle = 0;
 
 // Encoder setup
@@ -62,7 +67,8 @@ float read_enc2() {
   out_angle_vec.push(reading);
 
   // Use simpler filter
-  out_angle = out_angle_vec.get_avg();
+//  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
+  out_angle = reading;
 }
 
 float update_encoders() {
