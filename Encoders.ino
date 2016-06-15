@@ -67,7 +67,7 @@ float read_enc2() {
   out_angle_vec.push(reading);
 
   // Use simpler filter
-  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
+//  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
   out_angle = reading;
 }
 

@@ -85,10 +85,10 @@ void loop() {
 
 #ifdef ENCODER_DEBUG
   update_encoders();
-  Serial.print("Encoder 1: ");
-  Serial.println(m1_angle);
-  Serial.print("Encoder 2: ");
-  Serial.println(out_angle);
+//  Serial.print("Encoder 1: ");
+//  Serial.println(m1_angle);
+//  Serial.print("Encoder 2: ");
+  Serial.println(String(millis()) + " " + String(out_angle));
   delay(100);
 #endif
 
