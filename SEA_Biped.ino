@@ -40,6 +40,7 @@ extern volatile float m1_angle_delta;
 extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
 extern volatile float out_angle;
+volatile unsigned int prev_reading = 0;
 
 float m1_cycle = 0;
 float m1_cycle_delta = 0.05;
@@ -88,7 +89,7 @@ void loop() {
 //  Serial.print("Encoder 1: ");
 //  Serial.println(m1_angle);
 //  Serial.print("Encoder 2: ");
-  Serial.println(String(millis()) + " " + String(out_angle));
+  Serial.println(String(millis()) + " " + String(out_angle) + " " + String(prev_reading));
   delay(100);
 #endif
 

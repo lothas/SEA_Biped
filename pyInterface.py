@@ -57,8 +57,10 @@ class AnalogPlot:
               # print data
               if(len(data) >= 2):
                   self.add(data)
+                  plotHandle = 0
                   for i in range(1,len(data)):
-                      plotHandles[i-1].set_data(self.time, self.data[i-1])
+                      plotHandle = plotHandles[i-1][0]
+                      plotHandle.set_data(self.time, self.data[i-1])
                   axes = plt.gca()
                   axes.set_xlim([min(self.time),max(self.time)])
                   self.count += 1
@@ -94,8 +96,7 @@ def main():
   # plot parameters
   analogPlot = AnalogPlot(strPort, 100)
 
-  print('plotting data...')
-
+  print('initializing...')
   # get sample data
   line = analogPlot.ser.readline()
   # Get float numbers by splitting line (by white-spaces)
@@ -103,14 +104,15 @@ def main():
   
   # set up animation
   fig = plt.figure()
-  ax = plt.axes(xlim=(0, 200), ylim=(0, 1100))
+  ax = plt.axes(xlim=(0, 200), ylim=(-1000, 1100))
   plotHandles = []
   analogPlot.time = deque([data[0]])
   for i in range(1,len(data)):
       analogPlot.data.append(deque([data[i]]))
       plotHandles.append(ax.plot([],[]))
+  print('plotting data...')
   anim = animation.FuncAnimation(fig, analogPlot.update, 
-                                 fargs=plotHandles, 
+                                 fargs=[plotHandles], 
                                  interval=50)
 
   # show plot

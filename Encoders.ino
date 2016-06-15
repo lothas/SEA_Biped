@@ -24,6 +24,11 @@ volatile unsigned long t_prev = 0;
 
 // Output angle variables
 MyVector out_angle_vec(5);
+//volatile unsigned int prev_reading = 0;
+unsigned int init_reading = 0;
+const unsigned int min_reading = 365;
+const unsigned int max_reading = 1017;
+volatile int enc2_revs = 0;
 volatile float out_angle = 0;
 
 // Encoder setup
@@ -37,10 +42,13 @@ void setup_encoders() {
   
   pinMode(ENC2, INPUT);
   digitalWrite(ENC2, HIGH);
-
-  out_angle_vec.fill_with(analogRead(ENC2));
   
   t_cur = micros();
+
+  delay(200);
+  prev_reading = analogRead(ENC2);
+  init_reading = prev_reading;
+  out_angle_vec.fill_with(prev_reading);
 }
 
 void read_enc1_A() {
@@ -64,11 +72,15 @@ void read_enc1_B() {
 float read_enc2() {
   // Get current reading
   unsigned int reading = analogRead(ENC2);
-  out_angle_vec.push(reading);
+  int reading_diff = int(reading)-int(prev_reading);
+  if (reading_diff > 300) enc2_revs--;
+  if (reading_diff < -300) enc2_revs++;
+  
+  out_angle_vec.push(enc2_revs*int(max_reading-min_reading) + int(reading) - int(init_reading));
+  prev_reading = reading;
 
   // Use simpler filter
-//  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
-  out_angle = reading;
+  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
 }
 
 float update_encoders() {
