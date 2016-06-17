@@ -90,7 +90,7 @@ void loop() {
 //  Serial.println(m1_angle);
 //  Serial.print("Encoder 2: ");
   Serial.println(String(millis()) + " " + String(out_angle) + " " + String(prev_reading));
-  delay(100);
+  delay(10);
 #endif
 
 #ifdef INNER_LOOP_DEBUG

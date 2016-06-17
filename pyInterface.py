@@ -51,7 +51,8 @@ class AnalogPlot:
   def update(self, frameNum, plotHandles):
       if self.count < 2000:
           try:
-              line = self.ser.readline()
+              for i in range(8):
+                  line = self.ser.readline()
               # Get float numbers by splitting line (by white-spaces)
               data = [float(val) for val in line.split()]
               # print data
@@ -113,7 +114,7 @@ def main():
   print('plotting data...')
   anim = animation.FuncAnimation(fig, analogPlot.update, 
                                  fargs=[plotHandles], 
-                                 interval=50)
+                                 interval=40)
 
   # show plot
   plt.show()

@@ -22,8 +22,10 @@ MyVector::MyVector(int vec_length, float * vec_in) {
   }
 }
 
-float MyVector::get_by_id(unsigned int rel_idx) {
-  return vec_array[(idx+rel_idx)%vec_len];
+float MyVector::get_by_id(int rel_idx) {
+  int index = (int(idx)+rel_idx)%int(vec_len);
+  if (index<0) return vec_array[index+int(vec_len)];
+  return vec_array[index];
 }
 
 float MyVector::get_avg() {

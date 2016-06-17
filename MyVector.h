@@ -7,7 +7,7 @@ class MyVector {
   public:
     MyVector(int vec_length);
     MyVector(int vec_length, float * vec_in);
-    float get_by_id(unsigned int rel_idx);
+    float get_by_id(int rel_idx);
     float get_avg();
     float get_avg_diff();
     void push(float val);

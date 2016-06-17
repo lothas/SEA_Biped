@@ -28,6 +28,7 @@ MyVector out_angle_vec(5);
 unsigned int init_reading = 0;
 const unsigned int min_reading = 365;
 const unsigned int max_reading = 1017;
+const int min_max_diff = int(max_reading-min_reading);
 volatile int enc2_revs = 0;
 volatile float out_angle = 0;
 
@@ -48,7 +49,7 @@ void setup_encoders() {
   delay(200);
   prev_reading = analogRead(ENC2);
   init_reading = prev_reading;
-  out_angle_vec.fill_with(prev_reading);
+  out_angle_vec.fill_with(0);
 }
 
 void read_enc1_A() {
@@ -73,10 +74,25 @@ float read_enc2() {
   // Get current reading
   unsigned int reading = analogRead(ENC2);
   int reading_diff = int(reading)-int(prev_reading);
+  // Add/Remove a full-revolution when the reading jumps
   if (reading_diff > 300) enc2_revs--;
   if (reading_diff < -300) enc2_revs++;
+
+  // Avoid "double" jumps
+  int limit = 10;
+  float new_val = 0;
+  while (limit--) {
+    new_val = enc2_revs*min_max_diff + int(reading) - int(init_reading);
+    float val_diff = new_val - out_angle_vec.get_by_id(-1);
+//    Serial.println("new_val: " + String(new_val) + " | prev_val: " + String(out_angle_vec.get_by_id(-1)));
+    if (val_diff > 0.7*min_max_diff) enc2_revs--;
+    else {
+      if (val_diff < -0.7*min_max_diff) enc2_revs++;
+      else break;
+    }
+  }
   
-  out_angle_vec.push(enc2_revs*int(max_reading-min_reading) + int(reading) - int(init_reading));
+  out_angle_vec.push(new_val);
   prev_reading = reading;
 
   // Use simpler filter
