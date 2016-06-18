@@ -39,6 +39,7 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <layout class="QVBoxLayout" name="plot_window_vlayout"/>
      </widget>
     </item>
     <item>
