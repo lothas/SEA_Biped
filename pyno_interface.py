@@ -20,32 +20,58 @@ import serial
 from matplotlib.animation import TimedAnimation
 from matplotlib.lines import Line2D
     
-import matplotlib.pyplot as plt 
-import matplotlib.animation as animation
-from analog_plot import AnalogPlot
-    
 Ui_MainWindow, QMainWindow = loadUiType('pyno_interface.ui')
 
+
 class Main(QMainWindow, Ui_MainWindow):
-    def __init__(self, ):
+    def __init__(self, portStr, bufferSize, lineSkip):
         super(Main, self).__init__()
         self.setupUi(self)
         
-    def addmpl(self, fig):
-        self.canvas = FigureCanvas(fig)
+        # Add plotting area
+        self.canvas = SerialFigCanvas(portStr, bufferSize, lineSkip)
         self.plot_window_vlayout.addWidget(self.canvas)
+        
         self.canvas.draw()
         self.toolbar = NavigationToolbar(self.canvas, 
                 self.plot_window, coordinates=True)
         self.plot_window_vlayout.addWidget(self.toolbar)
         
+        # Connect buttons
+        self.start_plot_button.clicked.connect(self.startPlot)
+        self.stop_plot_button.clicked.connect(self.stopPlot)
+        self.clear_plot_button.clicked.connect(self.clearPlot)
+        self.save_to_matlab.clicked.connect(self.saveToMATLAB)
+        
+    def closeEvent(self, event):
+        exit()
+        
+    def startPlot(self, item):
+        self.canvas.doPlot = True
+        
+    def stopPlot(self, item):
+        self.canvas.doPlot = False
+        
+    def clearPlot(self, item):
+        self.canvas.clearBuffers()
+        
+    def saveToMATLAB(self, item):
+        print("Saving data for MATLAB to pyno_data.txt")
+        with open("pyno_data.txt", "w") as text_file:
+            timeStr = "{0}".format(list(self.canvas.time))
+            text_file.write(timeStr[1:len(timeStr)-1])
+            for i in range(self.canvas.n_plots):                
+                dataStr = "{0}".format(list(self.canvas.data[i]))
+                text_file.write("\n" + dataStr[1:len(dataStr)-1])
+        
         
 class SerialFigCanvas(FigureCanvas, TimedAnimation):
-    def __init__(self, strPort, bufferSize):
+    def __init__(self, strPort, bufferSize, lineSkip):
         # The data
         self.time = []
         self.data = []
         self.bufferSize = bufferSize
+        self.lineSkip = lineSkip
         
         # The window
         self.fig = Figure(figsize=(5,5), dpi=100)
@@ -73,7 +99,7 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
             self.lines.append(Line2D(self.time, self.data[-1], color='blue'))
             ax1.add_line(self.lines[-1])
         
-        self.count = 0
+        self.doPlot = True
 
         ax1.set_xlim(0, 1000)
         ax1.set_ylim(0, 4)
@@ -83,15 +109,15 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         TimedAnimation.__init__(self, self.fig, interval = 20, blit = True)
 
     def _draw_frame(self, framedata):
-        i = framedata
-        print(i)
+#        i = framedata
+#        print(i)
 
-        if self.count < 2000:
-            try:
-                # Read serial data
-                for j in range(8):
-                    line = self.ser.readline()
-                    
+        try:
+            # Read serial data
+            for j in range(self.lineSkip):
+                line = self.ser.readline()
+            
+            if self.doPlot:
                 # Get float numbers by splitting line (by white-spaces)
                 data = [float(val) for val in line.split()]
                 
@@ -112,11 +138,9 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
                         
                     self.axes.set_xlim([min(time),max(time)])
                     self.axes.set_ylim([plotmin,plotmax])
-                    self.count += 1
-            except KeyboardInterrupt:
-                print('exiting')
-        else:
-            pass
+                    
+        except KeyboardInterrupt:
+            print('exiting')
         
         self._drawn_artists = self.lines
 
@@ -142,6 +166,16 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         for i in range(1,len(data)):
             self.addToBuf(self.data[i-1], data[i])
             
+    # clear buffers
+    def clearBuffers(self):
+        last_val = self.time[-1]
+        self.time.clear()
+        self.time.append(last_val)
+        for i in range(self.n_plots):
+            last_val = self.data[i][-1]
+            self.data[i].clear()
+            self.data[i].append(last_val)
+            
     # clean up
     def close(self):
         # close serial
@@ -152,19 +186,16 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
 if __name__ == '__main__':
     import sys
     from PyQt4 import QtGui
-    import numpy as np
+    
+    # Interface configuration
+    portStr = 'COM4'
+    bufferSize = 200
+    lineSkip = 3
         
     # set up animation
-    fig = plt.figure()
-    ax = plt.axes(xlim=(0, 200), ylim=(-1000, 1100))
     print('plotting data...')
-    
     app = QtGui.QApplication(sys.argv)
-    main = Main()
-#    main.addmpl(fig)
-    myFigCanvas = SerialFigCanvas('COM4',100)
-    main.plot_window_vlayout.addWidget(myFigCanvas)
-    
+    main = Main(portStr, bufferSize, lineSkip)
     main.show()
     
     # clean up
