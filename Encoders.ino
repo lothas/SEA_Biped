@@ -1,91 +1,124 @@
 #include "MyVector.h"
 
 // Motor encoder definitions
-#define    ENC1_A       7
-// Pin 3 connects to interrupt  0
-#define    ENC1_B       6
+#define    ENC1_A       2
+#define    ENC1_B       3
 #define    ENC1_CPR    2249.0  // counts per revolution
-#define    ENC1_CPD    6.0  // counts per degree 2.515
+#define    ENC1_CPD    6.25    // counts per degree
 
-// Leg encoder definitions
-#define    ENC2        A1
-#define    ENC2_CPD    18.26
+// Output encoder definitions
+#define    ENC2        A0
+#define    ENC2_CPD    1   // counts per degree
+
+//Encoder 1: -152.96
+//Encoder 2: -978.40
+
 
 // Motor angle variable
-volatile int Enc1_count = 0;
-volatile float M1_angle = 0;
-volatile float M1_angle_prev = 0;
-volatile float M1_angle_delta = 0;
-volatile unsigned long T_cur = 0;
-volatile unsigned long T_prev = 0;
+volatile int enc1_count = 0;
+volatile float m1_angle = 0;
+volatile float m1_angle_prev = 0;
+volatile float m1_angle_delta = 0;
+volatile unsigned long t_cur = 0;
+volatile unsigned long t_prev = 0;
 
 // Output angle variables
-volatile unsigned int Out_angle_prev1 = 0;
-volatile unsigned int Out_angle_prev2 = 0;
-volatile float Out_angle = 0;
-volatile float Out_angle_delta = 0;
+MyVector out_angle_vec(5);
+//volatile unsigned int prev_reading = 0;
+unsigned int init_reading = 0;
+const unsigned int min_reading = 365;
+const unsigned int max_reading = 1017;
+const int min_max_diff = int(max_reading-min_reading);
+volatile int enc2_revs = 0;
+volatile float out_angle = 0;
 
 // Encoder setup
-void encoder_setup() {
+void setup_encoders() {
   pinMode(ENC1_A, INPUT);
   pinMode(ENC1_B, INPUT);
   digitalWrite(ENC1_A, HIGH);                      // turn on pullup resistor
   digitalWrite(ENC1_B, HIGH);
-  attachInterrupt(digitalPinToInterrupt(ENC1_A), Enc1_Read, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC1_A), read_enc1_A, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC1_B), read_enc1_B, CHANGE);
   
   pinMode(ENC2, INPUT);
   digitalWrite(ENC2, HIGH);
-
-  Out_angle_vec.fill_with(analogRead(ENC2));
-  Out_angle_prev1 = analogRead(ENC2);
-  Out_angle_prev2 = Out_angle_prev1;
   
-  T_cur = micros();
+  t_cur = micros();
+
+  delay(200);
+  prev_reading = analogRead(ENC2);
+  init_reading = prev_reading;
+  out_angle_vec.fill_with(0);
 }
 
-void Enc1_Read() {
-  // ISR called when ENC1_A changes
+void read_enc1_A() {
+  // ISR called when ENC1_A or ENC1_B changes
   int A_val = digitalRead(ENC1_A);
   int B_val = digitalRead(ENC1_B);
 
-  if ((A_val == LOW && B_val == HIGH) || (A_val == HIGH && B_val == LOW)) Enc1_count++;
-  if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) Enc1_count--;
+  if ((A_val == LOW && B_val == HIGH) || (A_val == HIGH && B_val == LOW)) enc1_count++;
+  if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) enc1_count--;
 }
 
-float Enc2_Read() {
+void read_enc1_B() {
+  // ISR called when ENC1_A or ENC1_B changes
+  int A_val = digitalRead(ENC1_A);
+  int B_val = digitalRead(ENC1_B);
+
+  if ((A_val == LOW && B_val == HIGH) || (A_val == HIGH && B_val == LOW)) enc1_count--;
+  if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) enc1_count++;
+}
+
+float read_enc2() {
   // Get current reading
-  unsigned int Reading = analogRead(ENC2);
-  Out_angle_vec.add_element(Reading);
+  unsigned int reading = analogRead(ENC2);
+  int reading_diff = int(reading)-int(prev_reading);
+  // Add/Remove a full-revolution when the reading jumps
+  if (reading_diff > 300) enc2_revs--;
+  if (reading_diff < -300) enc2_revs++;
+
+  // Avoid "double" jumps
+  int limit = 10;
+  float new_val = 0;
+  while (limit--) {
+    new_val = enc2_revs*min_max_diff + int(reading) - int(init_reading);
+    float val_diff = new_val - out_angle_vec.get_by_id(-1);
+//    Serial.println("new_val: " + String(new_val) + " | prev_val: " + String(out_angle_vec.get_by_id(-1)));
+    if (val_diff > 0.7*min_max_diff) enc2_revs--;
+    else {
+      if (val_diff < -0.7*min_max_diff) enc2_revs++;
+      else break;
+    }
+  }
+  
+  out_angle_vec.push(new_val);
+  prev_reading = reading;
 
   // Use simpler filter
-//  Out_angle = (Reading + Out_angle_prev1 + Out_angle_prev2) / 3.0;
-  Out_angle = Out_angle_vec.get_avg();
-
-  // Update previous reads
-  Out_angle_prev2 = Out_angle_prev1;
-  Out_angle_prev1 = Reading;
+  out_angle = -out_angle_vec.get_avg()/ENC2_CPD;
 }
 
-float enc_update() {
+float update_encoders() {
   // Keep Enc1_count safe from overflow
-  if (Enc1_count>4000) {
-    M1_angle_delta += 4000.0/ENC1_CPD;
-    Enc1_count -= 4000;
+  if (enc1_count>4000) {
+    m1_angle_delta += 4000.0/ENC1_CPD;
+    enc1_count -= 4000;
   }
-  if (Enc1_count<-4000) {
-    M1_angle_delta -= 4000.0/ENC1_CPD;
-    Enc1_count += 4000;
+  if (enc1_count<-4000) {
+    m1_angle_delta -= 4000.0/ENC1_CPD;
+    enc1_count += 4000;
   }
   
   // Save previous angle
-  M1_angle_prev = M1_angle;
+  m1_angle_prev = m1_angle;
   // Get new angle
-  M1_angle = Enc1_count/ENC1_CPD+M1_angle_delta;
+  m1_angle = enc1_count/ENC1_CPD + m1_angle_delta;
 
   // Save previous time
-  T_prev = T_cur;
+  t_prev = t_cur;
   // Get new time
-  T_cur = micros();
+  t_cur = micros();
   
-  Enc2_Read(); // also update the reading for encoder 2
+  read_enc2(); // also update the reading for encoder 2
 }

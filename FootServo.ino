@@ -1,8 +1,7 @@
-
 #define RIGHT_FOOT_SERVO_PIN 9
 #define LEFT_FOOT_SERVO_PIN 10
 
-void feetServo_setup() {
+void setup_feet_servos() {
   // TODO: check which pin the servo is connected to.
 
   Servo rightFootServo;
