@@ -26,10 +26,11 @@ volatile unsigned long t_prev = 0;
 MyVector out_angle_vec(5);
 //volatile unsigned int prev_reading = 0;
 unsigned int init_reading = 0;
-const unsigned int min_reading = 365;
-const unsigned int max_reading = 1017;
+const unsigned int min_reading = 53;
+const unsigned int max_reading = 979;
 const int min_max_diff = int(max_reading-min_reading);
 volatile int enc2_revs = 0;
+volatile int enc2_jump_flag = 0;
 volatile float out_angle = 0;
 
 // Encoder setup
@@ -42,7 +43,7 @@ void setup_encoders() {
   attachInterrupt(digitalPinToInterrupt(ENC1_B), read_enc1_B, CHANGE);
   
   pinMode(ENC2, INPUT);
-  digitalWrite(ENC2, HIGH);
+//  digitalWrite(ENC2, HIGH);
   
   t_cur = micros();
 
@@ -75,22 +76,36 @@ float read_enc2() {
   unsigned int reading = analogRead(ENC2);
   int reading_diff = int(reading)-int(prev_reading);
   // Add/Remove a full-revolution when the reading jumps
-  if (reading_diff > 300) enc2_revs--;
-  if (reading_diff < -300) enc2_revs++;
+  if (reading_diff > 0.1*min_max_diff) {
+    if (enc2_jump_flag == 0) enc2_revs--;
+    enc2_jump_flag = -4;
+  }
+  else {
+    if (reading_diff < -0.1*min_max_diff) {
+      if (enc2_jump_flag == 0) enc2_revs++;
+      enc2_jump_flag = 4;
+    }
+    else enc2_jump_flag /= 2;
+  }
 
   // Avoid "double" jumps
-  int limit = 10;
+//  int limit = 10;
+//  float new_val = 0;
+//  while (limit--) {
+//    new_val = enc2_revs*min_max_diff + int(reading) - int(init_reading);
+//    float val_diff = new_val - out_angle_vec.get_by_id(-1);
+////    Serial.println("new_val: " + String(new_val) + " | prev_val: " + String(out_angle_vec.get_by_id(-1)));
+//    if (val_diff > 0.7*min_max_diff) enc2_revs--;
+//    else {
+//      if (val_diff < -0.7*min_max_diff) enc2_revs++;
+//      else break;
+//    }
+//  }
+
   float new_val = 0;
-  while (limit--) {
-    new_val = enc2_revs*min_max_diff + int(reading) - int(init_reading);
-    float val_diff = new_val - out_angle_vec.get_by_id(-1);
-//    Serial.println("new_val: " + String(new_val) + " | prev_val: " + String(out_angle_vec.get_by_id(-1)));
-    if (val_diff > 0.7*min_max_diff) enc2_revs--;
-    else {
-      if (val_diff < -0.7*min_max_diff) enc2_revs++;
-      else break;
-    }
-  }
+  if (enc2_jump_flag>0) new_val = enc2_revs*min_max_diff;
+  if (enc2_jump_flag<0) new_val = (enc2_revs+1)*min_max_diff;
+  if (enc2_jump_flag==0) new_val = enc2_revs*min_max_diff + int(reading) - int(init_reading);
   
   out_angle_vec.push(new_val);
   prev_reading = reading;
