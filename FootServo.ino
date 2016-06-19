@@ -1,12 +1,11 @@
 #define RIGHT_FOOT_SERVO_PIN 9
 #define LEFT_FOOT_SERVO_PIN 10
 
+Servo rightFootServo;
+Servo leftFootServo;
+  
 void setup_feet_servos() {
   // TODO: check which pin the servo is connected to.
-
-  Servo rightFootServo;
-  Servo leftFootServo;
-
   delay(1);
   
   rightFootServo.attach(RIGHT_FOOT_SERVO_PIN);  // attaches the servo on pin 9 to the servo object

@@ -23,7 +23,7 @@ void setup_motor() {
 
 float get_current_sense() {
   float CurrentSenseAmper = 0;
-  unsigned int CurrentSense = 0;
+  int CurrentSense = 0;
   
   CurrentSense = analogRead(CURRENT_SENSE_PIN); // a value from 0 to 1023
   CurrentSenseAmper = ( (float(CurrentSense)*48.9) / CURRENT_SENSE_SLOPE ); // 1000 is to convert [mV] to [V]

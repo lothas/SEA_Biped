@@ -12,7 +12,8 @@
 
 //#define MOTOR_DEBUG
 #define ENCODER_DEBUG
-#define INNER_LOOP_DEBUG
+#define SERVO_DEBUG
+//#define INNER_LOOP_DEBUG
 #define PC_COMM_DEBUG
 #define CUR_SENSE_DEBUG
 //#define CL_DEBUG
@@ -58,6 +59,9 @@ int comm_idx = 0;
 int op_mode = 1;
 int pc_input = 0;
 
+extern Servo rightFootServo;
+extern Servo leftFootServo;
+
 // Current sensing
 float I_motor;
 
@@ -90,6 +94,19 @@ void loop() {
     if (m1_cycle>0) set_motor_speed(0.5);
     else set_motor_speed(-0.5);
     delay(100);
+  }
+  else {
+    set_motor_speed(0);
+  }
+#endif
+
+#ifdef SERVO_DEBUG
+  if (op_mode > 0) {
+    m1_cycle += 0.5*m1_cycle_delta;
+    if (abs(m1_cycle)>1) m1_cycle_delta *= -1;
+
+    if (m1_cycle>0) moveFootServo(rightFootServo,0);
+    else moveFootServo(rightFootServo,180);
   }
   else {
     set_motor_speed(0);
