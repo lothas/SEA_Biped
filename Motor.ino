@@ -18,6 +18,14 @@ void setup_motor() {
   TCCR1B = _BV(CS00); // change the PWM frequency to 31.25kHz   - pins 9 & 10 
 }
 
+void emergency_stop() {
+  digitalWrite(INA, LOW);
+  digitalWrite(INB, LOW);
+  analogWrite(M1_PWM, 0);
+  op_mode = 0;
+  Serial.println("Emergency stop!!!");
+}
+
 void set_motor_speed(float cycle) {
   // Turn the motor FWD, BWD or off
   if (cycle == 0) {

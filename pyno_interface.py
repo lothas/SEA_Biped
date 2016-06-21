@@ -29,7 +29,10 @@ class Main(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         
         # Add plotting area
-        self.canvas = SerialFigCanvas(portStr, bufferSize, lineSkip)
+        self.canvas = SerialFigCanvas(portStr,
+                                      bufferSize,
+                                      lineSkip,
+                                      self.console)
         self.plot_window_vlayout.addWidget(self.canvas)
         
         self.canvas.draw()
@@ -42,6 +45,9 @@ class Main(QMainWindow, Ui_MainWindow):
         self.stop_plot_button.clicked.connect(self.stopPlot)
         self.clear_plot_button.clicked.connect(self.clearPlot)
         self.save_to_matlab.clicked.connect(self.saveToMATLAB)
+        self.motor_fwd_button.clicked.connect(self.canvas.sendMotorFwd)
+        self.motor_bwd_button.clicked.connect(self.canvas.sendMotorBwd)
+        self.emergency_button.clicked.connect(self.canvas.sendEmergencyStop)
         
     def closeEvent(self, event):
         exit()
@@ -66,7 +72,7 @@ class Main(QMainWindow, Ui_MainWindow):
         
         
 class SerialFigCanvas(FigureCanvas, TimedAnimation):
-    def __init__(self, strPort, bufferSize, lineSkip):
+    def __init__(self, strPort, bufferSize, lineSkip, console):
         # The data
         self.time = []
         self.data = []
@@ -79,6 +85,7 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         # ax1 settings
         ax1.set_xlabel('time')
         ax1.set_ylabel('raw data')
+        self.console = console
         
         # The serial connection
         self.strPort = strPort
@@ -115,7 +122,7 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         try:
             # Read serial data
             for j in range(self.lineSkip):
-                line = self.ser.readline()
+                line = self.read_serial()
             
             if self.doPlot:
                 # Get float numbers by splitting line (by white-spaces)
@@ -123,21 +130,23 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
                 
                 # print data
                 if(len(data) >= 2):
-                    plotmax = 0
-                    plotmin = 0
+                    plotMax = 0
+                    plotMin = 0
                     self.add(data)
                     
                     time = list(self.time)
                     for j in range(self.n_plots):
                         line = list(self.data[j])
-                        if min(line)<plotmin:
-                            plotmin = min(line)
-                        if max(line)>plotmax:
-                            plotmax = max(line)
+                        if min(line)<plotMin:
+                            plotMin = min(line)
+                        if max(line)>plotMax:
+                            plotMax = max(line)
                         self.lines[j].set_data(time, line)
                         
+                    plotDelta = max(plotMax - plotMin, 1)
                     self.axes.set_xlim([min(time),max(time)])
-                    self.axes.set_ylim([plotmin,plotmax])
+                    self.axes.set_ylim([plotMin-0.1*plotDelta,
+                                        plotMax+0.1*plotDelta])
                     
         except KeyboardInterrupt:
             print('exiting')
@@ -151,6 +160,32 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         for l in self.lines:
             l.set_data([], [])
             
+    def read_serial(self):
+        line = self.ser.readline()
+        if line[0].isalpha():
+            # This is a text output message
+            self.display_message(line) # send message to console and
+            return self.read_serial() # read next line
+        else:
+            # This is a time-stamped data message
+            return line
+        
+    def display_message(self, line):
+        self.console.insertPlainText(line)
+        self.console.moveCursor(QtGui.QTextCursor.End)
+        
+    def send_message(self, line):
+        self.ser.write(line)
+        
+    def sendEmergencyStop(self, item):
+        self.send_message('se')
+        
+    def sendMotorFwd(self, item):
+        self.send_message('smf5e')
+            
+    def sendMotorBwd(self, item):
+        self.send_message('smb5e')
+        
     # add to buffer
     def addToBuf(self, buf, val):
         if len(buf) < self.bufferSize:
@@ -188,7 +223,7 @@ if __name__ == '__main__':
     from PyQt4 import QtGui
     
     # Interface configuration
-    portStr = 'COM4'
+    portStr = 'COM8'
     bufferSize = 200
     lineSkip = 3
         
