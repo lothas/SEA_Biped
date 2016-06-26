@@ -18,13 +18,12 @@
 volatile int enc1_count = 0;
 volatile float m1_angle = 0;
 volatile float m1_angle_prev = 0;
-volatile float m1_angle_delta = 0;
 volatile unsigned long t_cur = 0;
 volatile unsigned long t_prev = 0;
 
 // Output angle variables
 MyVector out_angle_vec(5);
-//volatile unsigned int prev_reading = 0;
+volatile unsigned int prev_reading = 0;
 const unsigned int min_reading = 53;
 const unsigned int max_reading = 979;
 const int min_max_diff = int(max_reading-min_reading);
@@ -124,19 +123,16 @@ float read_enc2() {
 
 float update_encoders() {
   // Keep Enc1_count safe from overflow
-  if (enc1_count>4000) {
-    m1_angle_delta += 4000.0/ENC1_CPD;
-    enc1_count -= 4000;
+  if (abs(enc1_count)>20000) {
+    // This shouldn't happen
+    Serial.println("Encoder 1 count close to overflow, shutting down");
+    emergency_stop();
   }
-  if (enc1_count<-4000) {
-    m1_angle_delta -= 4000.0/ENC1_CPD;
-    enc1_count += 4000;
-  }
-  
+
   // Save previous angle
   m1_angle_prev = m1_angle;
   // Get new angle
-  m1_angle = enc1_count/ENC1_CPD + m1_angle_delta;
+  m1_angle = enc1_count/ENC1_CPD;
 
   // Save previous time
   t_prev = t_cur;

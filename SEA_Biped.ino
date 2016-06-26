@@ -37,11 +37,10 @@ volatile float des_torque = 0;
 
 extern volatile float m1_angle;
 extern volatile float m1_angle_prev;
-extern volatile float m1_angle_delta;
 extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
+extern volatile unsigned int prev_reading;
 extern volatile float out_angle;
-extern volatile unsigned int prev_reading = 0;
 
 float m1_cycle = 0;
 float m1_cycle_delta = 0.05;
@@ -49,12 +48,12 @@ float m1_cycle_delta = 0.05;
 // Control Modes
 char pc_comm[8] = {0,0,0,0,0,0,0,0};
 int comm_idx = 0;
-int op_mode = 1;
+int op_mode = 0;
 int pc_input = 0;
 
 // Output variables
 int out_count = 0;
-const int out_steps = 40;
+const int out_steps = 20;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -77,11 +76,16 @@ void setup()  {
 void loop() {
   check_limits();
   
+  if (op_mode > 0) {
+//    m1_des_angle = 30*sin(float(millis())/400.);
+    if (op_mode == 2) m1_des_angle = 30.*sin(millis()/200.);
+    m1_pid();
+  }
+  
   if (++out_count > out_steps) {
-    Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(m1_des_angle));
+    Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(prev_reading) + " " + String(out_angle));
     out_count = 0;
   }
-  if (op_mode > 0)  m1_pid();
   
 #ifdef MOTOR_DEBUG
   if (op_mode > 0) {
@@ -225,6 +229,16 @@ void read_pc_command(char cmd[8]) {
         op_mode = 1;
         m1_des_angle += delta_m1;
         Serial.println("Move motor by "+String(delta_m1));
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case 's':
+      {
+      // Received motor sine command
+      if (cmd[4] == PC_ETX) {
+        op_mode = 2;
+        Serial.println("Start sinusoidal motion");
       }
       else Serial.println("Transmission error");
       }

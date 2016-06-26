@@ -4,10 +4,11 @@ figure
 plot(data{1},data{2})
 hold on
 plot(data{1},data{3})
-legend('filtered','raw')
+plot(data{1},data{4})
+legend('raw','diff','filtered')
 xlabel('time [millis]')
 
-raw_data = data{3};
+raw_data = data{2};
 disp(['Min raw data: ',num2str(min(raw_data))]);
 disp(['Max raw data: ',num2str(max(raw_data))]);
 
