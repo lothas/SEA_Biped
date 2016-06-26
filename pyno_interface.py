@@ -47,6 +47,7 @@ class Main(QMainWindow, Ui_MainWindow):
         self.save_to_matlab.clicked.connect(self.saveToMATLAB)
         self.motor_fwd_button.clicked.connect(self.canvas.sendMotorFwd)
         self.motor_bwd_button.clicked.connect(self.canvas.sendMotorBwd)
+        self.motor_sine_button.clicked.connect(self.canvas.sendMotorSine)
         self.emergency_button.clicked.connect(self.canvas.sendEmergencyStop)
         
     def closeEvent(self, event):
@@ -147,6 +148,8 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
                     self.axes.set_xlim([min(time),max(time)])
                     self.axes.set_ylim([plotMin-0.1*plotDelta,
                                         plotMax+0.1*plotDelta])
+                                      
+                    self.draw()
                     
         except KeyboardInterrupt:
             print('exiting')
@@ -185,6 +188,9 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
             
     def sendMotorBwd(self, item):
         self.send_message('smb5e')
+        
+    def sendMotorSine(self, item):
+        self.send_message('sse')
         
     # add to buffer
     def addToBuf(self, buf, val):
