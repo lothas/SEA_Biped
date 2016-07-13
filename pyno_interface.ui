@@ -332,6 +332,30 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="motor_sine_button">
+        <property name="font">
+         <font>
+          <pointsize>10</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>M1 sine</string>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>icons/sine.png</normaloff>icons/sine.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="verticalSpacer_3">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
