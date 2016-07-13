@@ -39,7 +39,6 @@ extern volatile float m1_angle;
 extern volatile float m1_angle_prev;
 extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
-extern volatile unsigned int prev_reading;
 extern volatile float out_angle;
 
 float m1_cycle = 0;
@@ -53,7 +52,7 @@ int pc_input = 0;
 
 // Output variables
 int out_count = 0;
-const int out_steps = 20;
+const int out_steps = 40;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -83,7 +82,7 @@ void loop() {
   }
   
   if (++out_count > out_steps) {
-    Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(prev_reading) + " " + String(out_angle));
+    Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(out_angle));
     out_count = 0;
   }
   

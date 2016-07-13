@@ -223,9 +223,9 @@ if __name__ == '__main__':
     from PyQt4 import QtGui
     
     # Interface configuration
-    portStr = 'COM8'
+    portStr = 'COM4'
     bufferSize = 200
-    lineSkip = 3
+    lineSkip = 6
         
     # set up animation
     print('plotting data...')
