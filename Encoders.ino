@@ -9,7 +9,7 @@
 // Output encoder definitions
 #define    ENC2_A       7
 #define    ENC2_B       5
-#define    ENC2_CPD     1   // counts per degree
+#define    ENC2_CPD     15.667   // counts per degree
 
 //Encoder 1: -152.96
 //Encoder 2: -978.40
