@@ -1,15 +1,21 @@
-// TODO Rea: Write code for reading current sensor (output Amp)
-// Work on ways of adding the current reading to the control loop (Motor) + protection
-// Add code for foot servo
+// TODO Rea:
+// Write code for reading current sensor (output Amp) : [done]
+// Add code for foot servo: [done]
+// Work on ways of adding the current reading to over current protection: [done]
+// Work on ways of adding the current reading to the control loop (Motor): [....TODO...]
+
   
 #include "MyVector.h"
+#include "Servo.h"
 
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
 #define PC_COMM_DEBUG
 //#define MOTOR_DEBUG
+#define SERVO_DEBUG
 //#define ENCODER_DEBUG
 //#define INNER_LOOP_DEBUG
+#define CUR_SENSE_DEBUG
 #define CL_DEBUG
 
 #define    PC_COMM_SPEED   115200
@@ -23,6 +29,8 @@
 #define    OUT_DEAD        0.5    // Dead zone for output angle
 #define    MAX_DELTA      22.0    // Maximum angle error to apply
 #define    MAX_M1_ANGLE   90.0    // Maximum m1 angle (from vertical) allowed
+
+#define    MAX_ALLOWED_MOTOR_CURRENT   4 
 
 //Setting    Divisor    Frequency
 //0x01           1        31250
@@ -50,6 +58,12 @@ int comm_idx = 0;
 int op_mode = 1;
 int pc_input = 0;
 
+extern Servo rightFootServo;
+extern Servo leftFootServo;
+
+// Current sensing
+float I_motor;
+
 // Output variables
 int out_count = 0;
 const int out_steps = 40;
@@ -61,6 +75,8 @@ void setup()  {
 
   setup_motor();
   
+  setup_feet_servos();
+
   setup_encoders();
   
   pinMode(13,OUTPUT);
@@ -100,24 +116,38 @@ void loop() {
   }
 #endif
 
+#ifdef SERVO_DEBUG
+  if (op_mode > 0) {
+    m1_cycle += 0.5*m1_cycle_delta;
+    if (abs(m1_cycle)>1) m1_cycle_delta *= -1;
+
+    if (m1_cycle>0) moveFootServo(rightFootServo,0);
+    else moveFootServo(rightFootServo,180);
+  }
+  else {
+    set_motor_speed(0);
+  }
+#endif
+
 #ifdef ENCODER_DEBUG
   update_encoders();
 //  Serial.print("Encoder 1: ");
 //  Serial.println(m1_angle);
 //  Serial.print("Encoder 2: ");
 //  Serial.println(String(millis()) + " " + String(out_angle) + " " + String(prev_reading));
+  delay(10);
 #endif
 
 #ifdef INNER_LOOP_DEBUG
   if (op_mode > 0) {
-    m1_cycle += 0.01*m1_cycle_delta;
+    m1_cycle += 0.02*m1_cycle_delta;
     if (m1_cycle>1) {
       m1_cycle_delta *= -1;
-      delay(5000);
+//      delay(5000);
     }
     if (m1_cycle<0) {
       m1_cycle_delta *= -1;
-      delay(5000);
+//      delay(5000);
     }
 
     m1_des_angle = 360*m1_cycle;
@@ -187,6 +217,16 @@ void loop() {
 #endif
   
   //send_bluetooth_data(); 
+
+#ifdef CUR_SENSE_DEBUG
+  // Current sensing and emergency stop:
+  I_motor = get_current_sense();
+  Serial.println(String(millis()) + " " + String(I_motor));
+  
+//  if (I_motor > MAX_ALLOWED_MOTOR_CURRENT) {
+//    emergency_stop();
+//  }
+#endif
 }
 
 int uns_int_diff(unsigned int A, unsigned int B) {

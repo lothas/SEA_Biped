@@ -2,6 +2,8 @@
 #define    INA          8
 #define    INB         12
 #define    M1_PWM       6
+#define    CURRENT_SENSE_PIN A4   // PIN for current sensor
+#define CURRENT_SENSE_SLOPE 140. // K = V_read/I_out [mV]/[A]  ==> I_out = V_read/K
 
 // Closed loop definitions
 #define    IN_P           0.1    // Inner loop proportional gain for closing the motor angle error (0.05)
@@ -12,10 +14,21 @@ void setup_motor() {
   pinMode(INA, OUTPUT);
   pinMode(INB, OUTPUT);
   pinMode(M1_PWM, OUTPUT);
+  pinMode(CURRENT_SENSE_PIN, INPUT);
   
   // PWM frequency
 //  TCCR1B = TCCR1B & 0b11111000 | 0x01;
   TCCR1B = _BV(CS00); // change the PWM frequency to 31.25kHz   - pins 9 & 10 
+}
+
+float get_current_sense() {
+  float CurrentSenseAmper = 0;
+  int CurrentSense = 0;
+  
+  CurrentSense = analogRead(CURRENT_SENSE_PIN); // a value from 0 to 1023
+  CurrentSenseAmper = ( (float(CurrentSense)*48.9) / CURRENT_SENSE_SLOPE ); // 1000 is to convert [mV] to [V]
+
+  return CurrentSenseAmper;
 }
 
 void emergency_stop() {
