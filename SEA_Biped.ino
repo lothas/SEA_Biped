@@ -1,7 +1,4 @@
 // TODO Rea:
-// Write code for reading current sensor (output Amp) : [done]
-// Add code for foot servo: [done]
-// Work on ways of adding the current reading to over current protection: [done]
 // Work on ways of adding the current reading to the control loop (Motor): [....TODO...]
 
   
@@ -12,7 +9,7 @@
 
 #define PC_COMM_DEBUG
 //#define MOTOR_DEBUG
-#define SERVO_DEBUG
+//#define SERVO_DEBUG
 //#define ENCODER_DEBUG
 //#define INNER_LOOP_DEBUG
 #define CUR_SENSE_DEBUG
@@ -210,6 +207,7 @@ void loop() {
     if (m1_des_angle < -90) m1_des_angle = -90;
 
     m1_pid();
+    moveFootServo(rightFootServo, 90+m1_des_angle);
   }
   else {
     set_motor_speed(0);
