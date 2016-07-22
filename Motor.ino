@@ -32,12 +32,11 @@ float get_current_sense() {
 }
 
 void emergency_stop() {
-  // stopping the motor in case of over current
-  op_mode = 0;
-  digitalWrite(INA,LOW);
-  digitalWrite(INB,LOW);
+  digitalWrite(INA, LOW);
+  digitalWrite(INB, LOW);
   analogWrite(M1_PWM, 0);
-  Serial.println("emergency STOP!!!");
+  op_mode = 0;
+  Serial.println("Emergency stop!!!");
 }
 
 void set_motor_speed(float cycle) {
