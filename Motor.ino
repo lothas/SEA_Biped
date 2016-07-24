@@ -1,5 +1,7 @@
 #include "MyVector.h"
 
+extern int error_type;
+
 // Motor controller definitions
 #define    INA          8
 #define    INB         14
@@ -42,6 +44,8 @@ void emergency_stop() {
 }
 
 void set_motor_speed(float cycle) {
+  if (error_type > 0) return emergency_stop();
+  
   // Turn the motor FWD, BWD or off
   if (cycle == 0) {
     digitalWrite(INA, LOW);

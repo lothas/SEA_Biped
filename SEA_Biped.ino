@@ -65,6 +65,7 @@ extern Servo leftFootServo;
 float I_motor;
 
 // Output variables
+int error_type = 0;
 int out_count = 0;
 const int out_steps = 10;
 
@@ -91,15 +92,27 @@ void setup()  {
 void loop() {
   check_limits();
   
-//  if (op_mode > 0) {
-////    m1_des_angle = 30*sin(float(millis())/400.);
-//    if (op_mode == 2) m1_des_angle = 45.*sin(millis()/1000.);
-//    m1_pid();
-//  }
-  
+  // Output data to PC
   if (++out_count > out_steps) {
     Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
     out_count = 0;
+    switch (error_type) {
+      case 1:
+        Serial.println("ERROR! Manual stop called from terminal.");
+        break;
+      case 2:
+        Serial.println("ERROR! Motor angle is outside allowed bounds.");
+        break;
+      case 3:
+        Serial.println("ERROR! Encoder 1 count close to overflow, shutting down");
+        break;
+      case 4:
+        Serial.println("ERROR! Encoder 2 count close to overflow, shutting down");
+        break;
+      case 5:
+        Serial.println("ERROR! Motor angle is outside allowed bounds (called from ISR).");
+        break;
+    }
   }
   
 #ifdef MOTOR_DEBUG
@@ -139,7 +152,7 @@ void loop() {
 #endif
 
 #ifdef INNER_LOOP_DEBUG
-  if (op_mode > 0) {
+  if (op_mode == 1) {
     m1_cycle += 0.01*m1_cycle_delta;
     if (m1_cycle>1) {
       m1_cycle_delta *= -1;
@@ -155,6 +168,10 @@ void loop() {
 //    Serial.print("Desired M1 angle: ");
 //    Serial.println(m1_des_angle);
 
+    m1_pid();
+  }
+  if (op_mode == 2) {
+    m1_des_angle = 45.*sin(millis()/1000.);
     m1_pid();
   }
 #endif
@@ -240,10 +257,16 @@ int uns_int_diff(unsigned int A, unsigned int B) {
 
 void check_limits() {
   if (m1_angle > MAX_M1_ANGLE) {
-    if (m1_des_angle > m1_angle) emergency_stop();
+    if (m1_des_angle > m1_angle) {
+      error_type = 2;
+      emergency_stop();
+    }
   }
   if (m1_angle < -MAX_M1_ANGLE) {
-    if (m1_des_angle < m1_angle) emergency_stop();
+    if (m1_des_angle < m1_angle) {
+      error_type = 2;
+      emergency_stop();
+    }
   }
 }
 
@@ -257,6 +280,7 @@ void read_pc_command(char cmd[8]) {
     case PC_ETX:
       {
       // Emergency stop command
+      error_type = 1;
       emergency_stop();
       }
       break;
@@ -279,9 +303,20 @@ void read_pc_command(char cmd[8]) {
     case 's':
       {
       // Received motor sine command
-      if (cmd[4] == PC_ETX) {
+      if (cmd[2] == PC_ETX) {
         op_mode = 2;
         Serial.println("Start sinusoidal motion");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case 'E':
+      {
+      // Received clear error command
+      if (cmd[2] == PC_ETX) {
+        op_mode = 1;
+        error_type = 0;
+        Serial.println("Error cleared");
       }
       else Serial.println("Transmission error");
       }

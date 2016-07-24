@@ -14,6 +14,7 @@
 //Encoder 1: -152.96
 //Encoder 2: -978.40
 
+extern int error_type;
 
 // Motor angle variable
 volatile int enc1_count = 0;
@@ -57,6 +58,7 @@ void read_enc1_A() {
 
   if ((A_val == LOW && B_val == HIGH) || (A_val == HIGH && B_val == LOW)) enc1_count++;
   if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) enc1_count--;
+  if (abs(enc1_count)>600) error_type = 5, emergency_stop();
 }
 
 void read_enc1_B() {
@@ -66,6 +68,7 @@ void read_enc1_B() {
 
   if ((A_val == LOW && B_val == HIGH) || (A_val == HIGH && B_val == LOW)) enc1_count--;
   if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) enc1_count++;
+  if (abs(enc1_count)>600) error_type = 5, emergency_stop();
 }
 
 void read_enc2_A() {
@@ -91,14 +94,18 @@ float update_encoders() {
   if (abs(enc1_count)>20000) {
     // This shouldn't happen
     Serial.println("Encoder 1 count close to overflow, shutting down");
+    error_type = 3;
     emergency_stop();
+    enc1_count = 0;
   }
   
   // Keep Enc2_count safe from overflow
   if (abs(enc2_count)>20000) {
     // This shouldn't happen
     Serial.println("Encoder 2 count close to overflow, shutting down");
+    error_type = 4;
     emergency_stop();
+    enc2_count = 0;
   }
 
   // Save previous angle
