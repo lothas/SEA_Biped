@@ -229,7 +229,7 @@ if __name__ == '__main__':
     from PyQt4 import QtGui
     
     # Interface configuration
-    portStr = 'COM4'
+    portStr = 'COM19'
     bufferSize = 200
     lineSkip = 6
         

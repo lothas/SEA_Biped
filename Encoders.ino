@@ -8,7 +8,7 @@
 
 // Output encoder definitions
 #define    ENC2_A       7
-#define    ENC2_B       5
+#define    ENC2_B       4
 #define    ENC2_CPD     15.667   // counts per degree
 
 //Encoder 1: -152.96
@@ -21,11 +21,13 @@ volatile float m1_angle = 0;
 volatile float m1_angle_prev = 0;
 volatile unsigned long t_cur = 0;
 volatile unsigned long t_prev = 0;
+MyVector m1_angle_vec(10);
 
 // Output angle variables
 volatile int enc2_count = 0;
 volatile float out_angle = 0;
 volatile float out_angle_prev = 0;
+MyVector out_angle_vec(10);
 
 // Encoder setup
 void setup_encoders() {
@@ -42,7 +44,9 @@ void setup_encoders() {
 //  digitalWrite(ENC2_B, HIGH);
   attachInterrupt(digitalPinToInterrupt(ENC2_A), read_enc2_A, CHANGE);
 //  attachInterrupt(digitalPinToInterrupt(ENC2_B), read_enc2_B, CHANGE);
-  
+
+  m1_angle_vec.fill_with(0);
+  out_angle_vec.fill_with(0);
   t_cur = micros();
 }
 
@@ -101,11 +105,13 @@ float update_encoders() {
   m1_angle_prev = m1_angle;
   // Get new angle
   m1_angle = enc1_count/ENC1_CPD;
+  m1_angle_vec.push(m1_angle);
   
   // Save previous angle
   out_angle_prev = out_angle;
   // Get new angle
   out_angle = enc2_count/ENC2_CPD;
+  out_angle_vec.push(out_angle);
 
   // Save previous time
   t_prev = t_cur;

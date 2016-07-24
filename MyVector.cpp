@@ -1,5 +1,16 @@
 #include "MyVector.h"
 
+MyVector::MyVector() {
+//  if (vec_length > MAX_VEC_LEN) vec_len = MAX_VEC_LEN;
+//  else vec_len = vec_length;
+  vec_len = 25;
+  float * vec_array = new float[MAX_VEC_LEN];
+  
+  for (unsigned int i = 0; i<vec_len; ++i) {
+    vec_array[i] = 0;
+  }
+}
+
 MyVector::MyVector(int vec_length) {
 //  if (vec_length > MAX_VEC_LEN) vec_len = MAX_VEC_LEN;
 //  else vec_len = vec_length;
@@ -33,7 +44,7 @@ float MyVector::get_avg() {
   for (unsigned int i = 0; i<vec_len; ++i) {
     sum += vec_array[i];
   }
-  return sum/vec_len;
+  return sum/(float)vec_len;
 }
 
 float MyVector::get_avg_diff() {

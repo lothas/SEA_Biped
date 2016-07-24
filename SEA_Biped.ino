@@ -11,16 +11,16 @@
 //#define MOTOR_DEBUG
 //#define SERVO_DEBUG
 //#define ENCODER_DEBUG
-//#define INNER_LOOP_DEBUG
-#define CUR_SENSE_DEBUG
-#define CL_DEBUG
+#define INNER_LOOP_DEBUG
+//#define CUR_SENSE_DEBUG
+//#define CL_DEBUG
 
 #define    PC_COMM_SPEED   115200
 #define    PC_STX          's'
 #define    PC_ETX          'e'
 
 // Closed loop definitions
-#define    OUT_P           1.5    // Proportional gain for closing the output angle error
+#define    OUT_P           1.0    // Proportional gain for closing the output angle error
 #define    OUT_D          -2.0    // Derivative gain for closing the output angle error (-2)
 #define    OUT_HOME        0.0    // Output angle where torque = 0
 #define    OUT_DEAD        0.5    // Dead zone for output angle
@@ -46,6 +46,9 @@ extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
 extern volatile float out_angle;
 
+extern MyVector m1_angle_vec;
+extern MyVector out_angle_vec;
+
 float m1_cycle = 0;
 float m1_cycle_delta = 0.05;
 
@@ -63,7 +66,7 @@ float I_motor;
 
 // Output variables
 int out_count = 0;
-const int out_steps = 40;
+const int out_steps = 10;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -88,14 +91,14 @@ void setup()  {
 void loop() {
   check_limits();
   
-  if (op_mode > 0) {
-//    m1_des_angle = 30*sin(float(millis())/400.);
-    if (op_mode == 2) m1_des_angle = 45.*sin(millis()/1000.);
-    m1_pid();
-  }
+//  if (op_mode > 0) {
+////    m1_des_angle = 30*sin(float(millis())/400.);
+//    if (op_mode == 2) m1_des_angle = 45.*sin(millis()/1000.);
+//    m1_pid();
+//  }
   
   if (++out_count > out_steps) {
-    Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(out_angle));
+    Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
     out_count = 0;
   }
   
@@ -131,13 +134,13 @@ void loop() {
 //  Serial.print("Encoder 1: ");
 //  Serial.println(m1_angle);
 //  Serial.print("Encoder 2: ");
-//  Serial.println(String(millis()) + " " + String(out_angle) + " " + String(prev_reading));
-  delay(10);
+//  Serial.println(String(millis()) + " " + String(m1_angle) + " " + String(out_angle));
+//  delay(10);
 #endif
 
 #ifdef INNER_LOOP_DEBUG
   if (op_mode > 0) {
-    m1_cycle += 0.02*m1_cycle_delta;
+    m1_cycle += 0.01*m1_cycle_delta;
     if (m1_cycle>1) {
       m1_cycle_delta *= -1;
 //      delay(5000);
@@ -147,7 +150,7 @@ void loop() {
 //      delay(5000);
     }
 
-    m1_des_angle = 360*m1_cycle;
+    m1_des_angle = -80+160*m1_cycle;
     
 //    Serial.print("Desired M1 angle: ");
 //    Serial.println(m1_des_angle);
@@ -182,6 +185,7 @@ void loop() {
   if (op_mode == 1) {
     float p_comp = 0;
     float d_comp = 0;
+    out_angle = out_angle_vec.get_avg();
     if (out_angle > OUT_HOME + des_torque + OUT_DEAD) {
       p_comp = OUT_P*(out_angle - OUT_HOME - des_torque - OUT_DEAD);
 //      d_comp = OUT_D*out_angle_vec.get_avg_diff();

@@ -1,7 +1,7 @@
 #ifndef MYVECTOR
 #define MYVECTOR
 
-#define MAX_VEC_LEN   10
+    MyVector();
 
 class MyVector {
   public:

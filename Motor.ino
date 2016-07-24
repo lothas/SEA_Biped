@@ -1,13 +1,15 @@
+#include "MyVector.h"
+
 // Motor controller definitions
 #define    INA          8
-#define    INB         12
+#define    INB         14
 #define    M1_PWM       6
-#define    CURRENT_SENSE_PIN A4   // PIN for current sensor
+#define    CURRENT_SENSE_PIN A0   // PIN for current sensor
 #define CURRENT_SENSE_SLOPE 140. // K = V_read/I_out [mV]/[A]  ==> I_out = V_read/K
 
 // Closed loop definitions
-#define    IN_P           0.1    // Inner loop proportional gain for closing the motor angle error (0.05)
-#define    IN_D        5000.0    // Inner loop derivative gain for closing the motor angle error (1000)
+#define    IN_P           0.05    // Inner loop proportional gain for closing the motor angle error (0.1)
+#define    IN_D        1000.0    // Inner loop derivative gain for closing the motor angle error (5000)
 
 // Motor setup
 void setup_motor() {
@@ -60,8 +62,8 @@ void set_motor_speed(float cycle) {
     pwm_val = 0;
   }
   else {
-    if (cycle<0.25) pwm_val = 500*cycle;
-    else pwm_val = 125 + 150*(cycle - 0.25); // Max val = 237
+    if (cycle<0.25) pwm_val = 400*cycle;
+    else pwm_val = 100 + 100*(cycle - 0.25); // Max val = 237
   }
   analogWrite(M1_PWM, pwm_val);
 }
@@ -70,8 +72,10 @@ void set_motor_speed(float cycle) {
 void m1_pid() {
   update_encoders();
   
-  float error = m1_angle - m1_des_angle;
-  float er_dt = (m1_angle - m1_angle_prev)/float(t_cur - t_prev);
+//  float error = m1_angle - m1_des_angle;
+  float error = m1_angle_vec.get_avg() - m1_des_angle;
+//  float er_dt = (m1_angle - m1_angle_prev)/float(t_cur - t_prev);
+  float er_dt = m1_angle_vec.get_avg_diff()/float(t_cur - t_prev);
   
   float u = -IN_P*error;;
 //  if (abs(error)<=2) {
@@ -91,7 +95,7 @@ void m1_pid() {
 //  Serial.println(U);
 //  Serial.print("U_deriv = ");
 //  Serial.println(U_deriv);
-  if (abs(u_deriv)>0.5) u_deriv *= 0.5/abs(u_deriv); // Limit U_deriv to +/-0.5
+//  if (abs(u_deriv)>0.5) u_deriv *= 0.5/abs(u_deriv); // Limit U_deriv to +/-0.5
   u += u_deriv;
   
   if (u>1) u = 1;
