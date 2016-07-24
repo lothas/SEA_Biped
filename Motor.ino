@@ -8,8 +8,8 @@
 #define CURRENT_SENSE_SLOPE 140. // K = V_read/I_out [mV]/[A]  ==> I_out = V_read/K
 
 // Closed loop definitions
-#define    IN_P           0.1    // Inner loop proportional gain for closing the motor angle error (0.1)
-#define    IN_D        1200.0    // Inner loop derivative gain for closing the motor angle error (5000)
+#define    IN_P          0.06    // Inner loop proportional gain for closing the motor angle error (0.1)
+#define    IN_D         900.0    // Inner loop derivative gain for closing the motor angle error (5000)
 
 extern int error_type;
 
@@ -44,7 +44,7 @@ void emergency_stop() {
   digitalWrite(INB, LOW);
   analogWrite(M1_PWM, 0);
   op_mode = 0;
-  Serial.println("Emergency stop!!!");
+//  Serial.println("Emergency stop!!!");
 }
 
 void set_motor_speed(float cycle) {

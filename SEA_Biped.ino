@@ -14,6 +14,7 @@
 //#define INNER_LOOP_DEBUG
 //#define CUR_SENSE_DEBUG
 #define CL_DEBUG
+#define CPG_DEBUG
 
 #define    PC_COMM_SPEED   115200
 #define    PC_STX          's'
@@ -21,7 +22,7 @@
 
 // Closed loop definitions
 #define    OUT_P           1.0    // Proportional gain for closing the output angle error
-#define    OUT_D          -0.2    // Derivative gain for closing the output angle error (-2)
+#define    OUT_D          -0.0    // Derivative gain for closing the output angle error (-2)
 #define    OUT_HOME        0.0    // Output angle where torque = 0
 #define    OUT_DEAD        0.2    // Dead zone for output angle
 #define    MAX_DELTA      22.0    // Maximum angle error to apply
@@ -61,6 +62,7 @@ int comm_idx = 0;
 int op_mode = 1;
 int pc_input = 0;
 
+extern Servo middleFootServo;
 extern Servo rightFootServo;
 extern Servo leftFootServo;
 
@@ -71,6 +73,9 @@ float I_motor;
 int error_type = 0;
 int out_count = 0;
 const int out_steps = 50;
+
+// CPG variables
+unsigned long t_reset = 0;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -97,8 +102,9 @@ void loop() {
   
   // Output data to PC
   if (++out_count > out_steps) {
+    Serial.println(String(millis()) + " " + String(des_torque) + " " + String(m1_angle_vec.get_avg()));
 //    Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
-    Serial.println(String(millis()) + " " + String(u_P) + " " + String(u_D) + " " + String(u_P+u_D));
+//    Serial.println(String(millis()) + " " + String(u_P) + " " + String(u_D) + " " + String(u_P+u_D));
     out_count = 0;
     switch (error_type) {
       case 1:
@@ -115,6 +121,9 @@ void loop() {
         break;
       case 5:
         Serial.println("ERROR! Motor angle is outside allowed bounds (called from ISR).");
+        break;
+      case 6:
+        Serial.println("ERROR! Wrong arguments passed to SM function.");
         break;
     }
   }
@@ -200,6 +209,32 @@ void loop() {
       }
     }
   }
+#endif
+
+#ifdef CPG_DEBUG
+//  unsigned long phase = micros() - t_reset;
+//  unsigned long period = 2000000;
+//  unsigned long start1 = 100000;
+//  unsigned long end1 = 300000;
+//  float amp1 = 10;
+//  unsigned long start2 = 1100000;
+//  unsigned long end2 = 1300000;
+//  float amp2 = -0;
+//  if (phase > period) {
+//    t_reset = t_reset+period;
+//    Serial.println("CPG reset");
+//  }
+//  des_torque = 0;
+//  if (op_mode>0) {
+//    if (phase > start1 && phase < end1) des_torque += amp1, moveFootServo(middleFootServo, 10);
+//    if (phase > start2 && phase < end2) des_torque += amp2, moveFootServo(middleFootServo, 120);
+//  }
+  unsigned long t_stamp = micros();
+//  sm1_condition(t_stamp);
+//  sm1_action();
+  sm2_condition(t_stamp, m1_angle_vec.get_avg()+out_angle_vec.get_avg());
+//  sm2_action();
+  des_torque = 4.*sin(millis()/250.);
 #endif
 
 #ifdef CL_DEBUG
@@ -315,6 +350,18 @@ void read_pc_command(char cmd[8]) {
         op_mode = 1;
         error_type = 0;
         Serial.println("Error cleared");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case 'r':
+      {
+      // Received clear angles command
+      if (cmd[2] == PC_ETX) {
+        op_mode = 1;
+        m1_angle_vec.fill_with(0);
+        out_angle_vec.fill_with(0);
+        Serial.println("Angles cleared");
       }
       else Serial.println("Transmission error");
       }
