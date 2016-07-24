@@ -99,12 +99,13 @@ class SerialFigCanvas(FigureCanvas, TimedAnimation):
         # Get float numbers by splitting line (by white-spaces)
         data = [float(val) for val in line.split()]
         
+        colors = ['blue','red','black','green']
         self.n_plots = len(data)-1
         self.lines = []
         self.time = deque([data[0]])
         for i in range(self.n_plots):
             self.data.append(deque([data[i+1]]))
-            self.lines.append(Line2D(self.time, self.data[-1], color='blue'))
+            self.lines.append(Line2D(self.time, self.data[-1], color=colors[i%4]))
             ax1.add_line(self.lines[-1])
         
         self.doPlot = True

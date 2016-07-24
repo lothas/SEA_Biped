@@ -11,9 +11,9 @@
 //#define MOTOR_DEBUG
 //#define SERVO_DEBUG
 //#define ENCODER_DEBUG
-#define INNER_LOOP_DEBUG
+//#define INNER_LOOP_DEBUG
 //#define CUR_SENSE_DEBUG
-//#define CL_DEBUG
+#define CL_DEBUG
 
 #define    PC_COMM_SPEED   115200
 #define    PC_STX          's'
@@ -21,9 +21,9 @@
 
 // Closed loop definitions
 #define    OUT_P           1.0    // Proportional gain for closing the output angle error
-#define    OUT_D          -2.0    // Derivative gain for closing the output angle error (-2)
+#define    OUT_D          -0.2    // Derivative gain for closing the output angle error (-2)
 #define    OUT_HOME        0.0    // Output angle where torque = 0
-#define    OUT_DEAD        0.5    // Dead zone for output angle
+#define    OUT_DEAD        0.2    // Dead zone for output angle
 #define    MAX_DELTA      22.0    // Maximum angle error to apply
 #define    MAX_M1_ANGLE   90.0    // Maximum m1 angle (from vertical) allowed
 
@@ -52,6 +52,9 @@ extern MyVector out_angle_vec;
 float m1_cycle = 0;
 float m1_cycle_delta = 0.05;
 
+extern float u_P;
+extern float u_D;
+
 // Control Modes
 char pc_comm[8] = {0,0,0,0,0,0,0,0};
 int comm_idx = 0;
@@ -67,7 +70,7 @@ float I_motor;
 // Output variables
 int error_type = 0;
 int out_count = 0;
-const int out_steps = 10;
+const int out_steps = 50;
 
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
@@ -94,7 +97,8 @@ void loop() {
   
   // Output data to PC
   if (++out_count > out_steps) {
-    Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
+//    Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
+    Serial.println(String(millis()) + " " + String(u_P) + " " + String(u_D) + " " + String(u_P+u_D));
     out_count = 0;
     switch (error_type) {
       case 1:
@@ -153,7 +157,7 @@ void loop() {
 
 #ifdef INNER_LOOP_DEBUG
   if (op_mode == 1) {
-    m1_cycle += 0.01*m1_cycle_delta;
+    m1_cycle += 0.03*m1_cycle_delta;
     if (m1_cycle>1) {
       m1_cycle_delta *= -1;
 //      delay(5000);
@@ -205,21 +209,15 @@ void loop() {
     out_angle = out_angle_vec.get_avg();
     if (out_angle > OUT_HOME + des_torque + OUT_DEAD) {
       p_comp = OUT_P*(out_angle - OUT_HOME - des_torque - OUT_DEAD);
-//      d_comp = OUT_D*out_angle_vec.get_avg_diff();
-      
-      m1_des_angle = m1_angle + p_comp + d_comp;
+      d_comp = OUT_D*out_angle_vec.get_avg_diff();
     }
     else {
       if (out_angle < OUT_HOME + des_torque - OUT_DEAD) {
         p_comp = OUT_P*(out_angle - OUT_HOME - des_torque + OUT_DEAD);
-//        d_comp = OUT_D*out_angle_vec.get_avg_diff();
-        
-        m1_des_angle = m1_angle + p_comp + d_comp;
-      }
-      else {
-        m1_des_angle = m1_angle;
+        d_comp = OUT_D*out_angle_vec.get_avg_diff();
       }
     }
+    m1_des_angle = m1_angle + p_comp + d_comp;
 
     if (m1_des_angle > m1_angle + MAX_DELTA) m1_des_angle = m1_angle + MAX_DELTA;
     if (m1_des_angle < m1_angle - MAX_DELTA) m1_des_angle = m1_angle - MAX_DELTA;
