@@ -43,7 +43,7 @@ void emergency_stop() {
   digitalWrite(INA, LOW);
   digitalWrite(INB, LOW);
   analogWrite(M1_PWM, 0);
-  op_mode = 0;
+  mode = ALL_OFF;
 //  Serial.println("Emergency stop!!!");
 }
 

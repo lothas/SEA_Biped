@@ -19,7 +19,6 @@ extern int error_type;
 // Motor angle variable
 volatile int enc1_count = 0;
 volatile float m1_angle = 0;
-volatile float m1_angle_prev = 0;
 volatile unsigned long t_cur = 0;
 volatile unsigned long t_prev = 0;
 MyVector m1_angle_vec(10);
@@ -27,7 +26,6 @@ MyVector m1_angle_vec(10);
 // Output angle variables
 volatile int enc2_count = 0;
 volatile float out_angle = 0;
-volatile float out_angle_prev = 0;
 MyVector out_angle_vec(10);
 
 // Encoder setup
@@ -89,7 +87,7 @@ void read_enc2_B() {
   if ((A_val == HIGH && B_val == HIGH) || (A_val == LOW && B_val == LOW)) enc2_count++;
 }
 
-float update_encoders() {
+void update_encoders() {
   // Keep Enc1_count safe from overflow
   if (abs(enc1_count)>20000) {
     // This shouldn't happen
@@ -108,15 +106,9 @@ float update_encoders() {
     enc2_count = 0;
   }
 
-  // Save previous angle
-  m1_angle_prev = m1_angle;
-  // Get new angle
   m1_angle = enc1_count/ENC1_CPD;
   m1_angle_vec.push(m1_angle);
   
-  // Save previous angle
-  out_angle_prev = out_angle;
-  // Get new angle
   out_angle = enc2_count/ENC2_CPD;
   out_angle_vec.push(out_angle);
 
@@ -125,3 +117,11 @@ float update_encoders() {
   // Get new time
   t_cur = micros();
 }
+
+void reset_encoders() {
+  enc1_count = 0;
+  enc2_count = 0;
+  m1_angle_vec.fill_with(0);
+  out_angle_vec.fill_with(0);
+}
+

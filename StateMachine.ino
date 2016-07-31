@@ -1,11 +1,9 @@
 #define SM1_STATES 5
 #define SM2_STATES 4
 
-#define SERVO_OUT             10
-#define SERVO_IN              120
 #define CPG_PERIOD            1500000.0
-#define DOUBLE_STANCE_DUR     100000
-#define HIP_THRESH            12.0
+#define DOUBLE_STANCE_DUR     200000
+#define HIP_THRESH            10.0
 
 extern int error_type;
 extern volatile float des_torque;

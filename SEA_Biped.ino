@@ -8,6 +8,7 @@
 #define VERSION     "\n\n3D Printed Bio-Inspired Actuator"
 
 #define PC_COMM_DEBUG
+#define BT_COMM_DEBUG
 //#define MOTOR_DEBUG
 //#define SERVO_DEBUG
 //#define ENCODER_DEBUG
@@ -17,8 +18,8 @@
 #define CPG_DEBUG
 
 #define    PC_COMM_SPEED   115200
-#define    PC_STX          's'
-#define    PC_ETX          'e'
+#define    PC_STX          'z'
+#define    PC_ETX          'x'
 
 // Closed loop definitions
 #define    OUT_P           1.0    // Proportional gain for closing the output angle error
@@ -30,6 +31,9 @@
 
 #define    MAX_ALLOWED_MOTOR_CURRENT   4 
 
+#define SERVO_OUT             10
+#define SERVO_IN              160
+
 //Setting    Divisor    Frequency
 //0x01           1        31250
 //0x02           8        3906.25
@@ -37,12 +41,14 @@
 //0x04         256        122.0703125
 //0x05        1024        30.517578125
 
+// Operating modes
+enum op_mode { ALL_OFF, INNER_LOOP, SEA_LOOP, TEST_LOOP };
+
 // SEA variables
 volatile float m1_des_angle = 0; // Motor angle variable
 volatile float des_torque = 0;
 
 extern volatile float m1_angle;
-extern volatile float m1_angle_prev;
 extern volatile unsigned long t_cur;
 extern volatile unsigned long t_prev;
 extern volatile float out_angle;
@@ -59,8 +65,12 @@ extern float u_D;
 // Control Modes
 char pc_comm[8] = {0,0,0,0,0,0,0,0};
 int comm_idx = 0;
-int op_mode = 1;
+char bt_comm[8] = {0,0,0,0,0,0,0,0};
+int bt_comm_idx = 0;
+op_mode mode = SEA_LOOP;
 int pc_input = 0;
+int sm1_go = 1;
+int sm2_go = 1;
 
 extern Servo middleFootServo;
 extern Servo rightFootServo;
@@ -72,7 +82,7 @@ float I_motor;
 // Output variables
 int error_type = 0;
 int out_count = 0;
-const int out_steps = 50;
+const int out_steps = 10;
 
 // CPG variables
 unsigned long t_reset = 0;
@@ -80,7 +90,7 @@ unsigned long t_reset = 0;
 void setup()  {
   Serial.begin(PC_COMM_SPEED);
   
-//  setup_bluetooth();
+  setup_bluetooth();
 
   setup_motor();
   
@@ -102,7 +112,7 @@ void loop() {
   
   // Output data to PC
   if (++out_count > out_steps) {
-    Serial.println(String(millis()) + " " + String(des_torque) + " " + String(m1_angle_vec.get_avg()));
+//    Serial.println(String(millis()) + " " + String(des_torque) + " " + String(m1_angle_vec.get_avg()));
 //    Serial.println(String(millis()) + " " + String(m1_angle_vec.get_avg()) + " " + String(out_angle));
 //    Serial.println(String(millis()) + " " + String(u_P) + " " + String(u_D) + " " + String(u_P+u_D));
     out_count = 0;
@@ -129,7 +139,7 @@ void loop() {
   }
   
 #ifdef MOTOR_DEBUG
-  if (op_mode > 0) {
+  if (mode != ALL_OFF) {
     m1_cycle += m1_cycle_delta;
     if (abs(m1_cycle)>0.6) m1_cycle_delta *= -1;
 
@@ -143,7 +153,7 @@ void loop() {
 #endif
 
 #ifdef SERVO_DEBUG
-  if (op_mode > 0) {
+  if (mode != ALL_OFF) {
     m1_cycle += 0.5*m1_cycle_delta;
     if (abs(m1_cycle)>1) m1_cycle_delta *= -1;
 
@@ -165,7 +175,7 @@ void loop() {
 #endif
 
 #ifdef INNER_LOOP_DEBUG
-  if (op_mode == 1) {
+  if (mode == INNER_LOOP) {
     m1_cycle += 0.03*m1_cycle_delta;
     if (m1_cycle>1) {
       m1_cycle_delta *= -1;
@@ -183,7 +193,7 @@ void loop() {
 
     m1_pid();
   }
-  if (op_mode == 2) {
+  if (mode == TEST_LOOP) {
     m1_des_angle = 45.*sin(millis()/1000.);
     m1_pid();
   }
@@ -211,6 +221,28 @@ void loop() {
   }
 #endif
 
+#ifdef BT_COMM_DEBUG
+  if(Serial1.available()) {
+    bt_comm[bt_comm_idx] = Serial1.read();
+    if (bt_comm_idx == 0) {
+      if (bt_comm[bt_comm_idx] == PC_STX) {
+        // Start reading command
+        bt_comm_idx++;
+      }
+    }
+    else {
+      if (bt_comm[bt_comm_idx] == PC_ETX || bt_comm_idx>=7) {
+        // Command received
+        read_pc_command(bt_comm);
+        bt_comm_idx = 0;
+      }
+      else {
+        bt_comm_idx++;
+      }
+    }
+  }
+#endif
+
 #ifdef CPG_DEBUG
 //  unsigned long phase = micros() - t_reset;
 //  unsigned long period = 2000000;
@@ -225,20 +257,24 @@ void loop() {
 //    Serial.println("CPG reset");
 //  }
 //  des_torque = 0;
-//  if (op_mode>0) {
+//  if (mode != ALL_OFF) {
 //    if (phase > start1 && phase < end1) des_torque += amp1, moveFootServo(middleFootServo, 10);
 //    if (phase > start2 && phase < end2) des_torque += amp2, moveFootServo(middleFootServo, 120);
 //  }
   unsigned long t_stamp = micros();
-//  sm1_condition(t_stamp);
-//  sm1_action();
-  sm2_condition(t_stamp, m1_angle_vec.get_avg()+out_angle_vec.get_avg());
-//  sm2_action();
-  des_torque = 4.*sin(millis()/250.);
+  if (sm1_go) {
+  //  sm1_condition(t_stamp);
+  //  sm1_action();
+    des_torque = 10.*sin(millis()/250.);
+  }
+  if (sm2_go) {
+    sm2_condition(t_stamp, m1_angle_vec.get_avg()+out_angle_vec.get_avg());
+  //  sm2_action();
+  }
 #endif
 
 #ifdef CL_DEBUG
-  if (op_mode == 1) {
+  if (mode == SEA_LOOP) {
     float p_comp = 0;
     float d_comp = 0;
     out_angle = out_angle_vec.get_avg();
@@ -261,7 +297,7 @@ void loop() {
     if (m1_des_angle < -90) m1_des_angle = -90;
 
     m1_pid();
-    moveFootServo(rightFootServo, 90+m1_des_angle);
+//    moveFootServo(rightFootServo, 90+m1_des_angle);
   }
   else {
     set_motor_speed(0);
@@ -310,62 +346,100 @@ void read_pc_command(char cmd[8]) {
   if (cmd[0] != PC_STX) Serial.println("Transmission error");
 
   switch (cmd[1]) {
-    case PC_ETX:
+    // ----------------- GLOBAL CONTROL COMMANDS -----------------
+    case PC_ETX: // ///// Emergency stop command /////////////////
       {
-      // Emergency stop command
       error_type = 1;
       emergency_stop();
       }
       break;
-    case 'm':
+    case 'e': // ///////// Clear error command //////////////////
       {
-      // Read motor motion command
-      int dir = 0;
-      if (cmd[2] == 'f') dir = 1; // move forward
-      if (cmd[2] == 'b') dir = -1; // move backward
-      float delta_m1 = dir*(cmd[3]-48); // angle difference
-  
-      if (cmd[4] == PC_ETX) {
-        op_mode = 1;
-        m1_des_angle += delta_m1;
-        Serial.println("Move motor by "+String(delta_m1));
-      }
-      else Serial.println("Transmission error");
-      }
-      break;
-    case 's':
-      {
-      // Received motor sine command
       if (cmd[2] == PC_ETX) {
-        op_mode = 2;
-        Serial.println("Start sinusoidal motion");
-      }
-      else Serial.println("Transmission error");
-      }
-      break;
-    case 'E':
-      {
-      // Received clear error command
-      if (cmd[2] == PC_ETX) {
-        op_mode = 1;
+        mode = SEA_LOOP;
         error_type = 0;
         Serial.println("Error cleared");
       }
       else Serial.println("Transmission error");
       }
       break;
-    case 'r':
+    case 'r': // //////// Clear angles command ///////////////////
       {
-      // Received clear angles command
       if (cmd[2] == PC_ETX) {
-        op_mode = 1;
-        m1_angle_vec.fill_with(0);
-        out_angle_vec.fill_with(0);
+        mode = SEA_LOOP;
+        reset_encoders();
         Serial.println("Angles cleared");
       }
       else Serial.println("Transmission error");
       }
       break;
+    case '9': // //////////// Rest command //////////////////////
+      {
+      if (cmd[2] == PC_ETX) {
+        Serial.println("Go to rest position");
+        // Stop state machines
+        sm1_go = 0;
+        sm2_go = 0;
+
+        // Spread legs
+        mode = INNER_LOOP;
+        m1_des_angle = 15;
+
+        // Extend feet
+        moveFootServo(rightFootServo, SERVO_OUT);
+        moveFootServo(leftFootServo, SERVO_OUT);
+        moveFootServo(middleFootServo, SERVO_OUT);
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+      
+    // ---------------- STATE MACHINE COMMANDS ------------------
+    case '1': // /////// Toggle SM1 command /////////////////////
+      {
+      if (cmd[2] == PC_ETX) {
+        sm1_go = !sm1_go;
+        Serial.println(sm1_go ? "Turned State Machine 1 ON" : "Turned State Machine 1 OFF");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case '2': // /////// Toggle SM2 command /////////////////////
+      {
+      if (cmd[2] == PC_ETX) {
+        sm2_go = !sm2_go;
+        Serial.println(sm2_go ? "Turned State Machine 2 ON" : "Turned State Machine 2 OFF");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+      
+    // --------------------- MOTOR COMMANDS ---------------------
+    case 'm': // ////// Motor set-point command /////////////////
+      {
+      int dir = 0;
+      if (cmd[2] == 'f') dir = 1; // move forward
+      if (cmd[2] == 'b') dir = -1; // move backward
+      float delta_m1 = dir*(cmd[3]-48); // angle difference
+  
+      if (cmd[4] == PC_ETX) {
+        mode = INNER_LOOP;
+        m1_des_angle += delta_m1;
+        Serial.println("Move motor by "+String(delta_m1));
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case 's': // ////// Sine trajectory command /////////////////
+      {
+      if (cmd[2] == PC_ETX) {
+        mode = TEST_LOOP;
+        Serial.println("Start sinusoidal motion");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    
     default:
       int idx = 1;
       while (true) {
@@ -378,7 +452,7 @@ void read_pc_command(char cmd[8]) {
       }
       
       if (idx == 4) {
-        op_mode = 1;
+        mode = SEA_LOOP;
         digitalWrite(13,HIGH);
         Serial.print("New desired speed: ");
         Serial.println(pc_input-200);
