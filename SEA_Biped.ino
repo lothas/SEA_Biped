@@ -92,10 +92,13 @@ void setup()  {
   
   setup_bluetooth();
 
+  delay(10);
   setup_motor();
   
+  delay(10);
   setup_feet_servos();
 
+  delay(10);
   setup_encoders();
   
   pinMode(13,OUTPUT);

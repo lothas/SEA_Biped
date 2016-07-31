@@ -1,3 +1,5 @@
+#define    STX          'z' // 0x02
+#define    ETX          'x' // 0x03
 #define    LEDPIN       13
 #define    SLOW         750                            // Datafields refresh rate (ms)
 #define    FAST         250                             // Datafields refresh rate (ms)
