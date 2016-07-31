@@ -1,10 +1,10 @@
-#define    STX          0x02
-#define    ETX          0x03
+#define    STX          'z' // 0x02
+#define    ETX          'x' // 0x03
 #define    LEDPIN       13
 #define    SLOW         750                            // Datafields refresh rate (ms)
 #define    FAST         250                             // Datafields refresh rate (ms)
 
-#define    BT_COMM_SPEED   115200
+#define    BT_COMM_SPEED   9600 // 115200
 
 extern volatile float out_angle;
 
