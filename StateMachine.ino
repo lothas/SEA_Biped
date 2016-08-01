@@ -3,10 +3,10 @@
 
 #define CPG_PERIOD            1500000.0
 #define DOUBLE_STANCE_DUR     200000
-#define HIP_THRESH            10.0
+#define HIP_THRESH            8.0
 
 extern int error_type;
-extern volatile float des_torque;
+extern float des_torque;
 extern Servo middleFootServo;
 extern Servo rightFootServo;
 extern Servo leftFootServo;

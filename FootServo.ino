@@ -19,8 +19,7 @@ void setup_feet_servos() {
 void moveFootServo(Servo footServo, int dist) {
   
   footServo.write(dist);                  // sets the servo position according to the scaled value
-//  delay(10);                           // waits for the servo to get there
   //footServo.detach();                       // save power by detaching the servo (check if neccessary??)
 }
 
-  //TODO: 1) write a function to convert servo angle to actual foot extension ([mm])
+//TODO: 1) write a function to convert servo angle to actual foot extension ([mm])

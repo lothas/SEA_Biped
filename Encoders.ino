@@ -3,29 +3,28 @@
 // Motor encoder definitions
 #define    ENC1_A       2
 #define    ENC1_B       3
-#define    ENC1_CPR    2249.0  // counts per revolution
-#define    ENC1_CPD    6.25    // counts per degree
+#define    ENC1_CPD     6.25    // counts per degree (2249.0 counts per revolution)
 
 // Output encoder definitions
 #define    ENC2_A       7
 #define    ENC2_B       4
 #define    ENC2_CPD     15.667   // counts per degree
 
-//Encoder 1: -152.96
-//Encoder 2: -978.40
-
 extern int error_type;
+
+unsigned long t_cur = 0;
+unsigned long t_prev = 0;
 
 // Motor angle variable
 volatile int enc1_count = 0;
-volatile float m1_angle = 0;
-volatile unsigned long t_cur = 0;
-volatile unsigned long t_prev = 0;
+float m1_angle = 0;
+float m1_angle_diff = 0;
 MyVector m1_angle_vec(10);
 
 // Output angle variables
 volatile int enc2_count = 0;
-volatile float out_angle = 0;
+float out_angle = 0;
+float out_angle_diff = 0;
 MyVector out_angle_vec(10);
 
 // Encoder setup
@@ -106,11 +105,15 @@ void update_encoders() {
     enc2_count = 0;
   }
 
-  m1_angle = enc1_count/ENC1_CPD;
-  m1_angle_vec.push(m1_angle);
-  
-  out_angle = enc2_count/ENC2_CPD;
-  out_angle_vec.push(out_angle);
+  // Add current reading and update angles
+  m1_angle_vec.push(enc1_count/ENC1_CPD);
+  m1_angle = m1_angle_vec.get_avg();
+  m1_angle_diff = m1_angle_vec.get_avg_diff()/float(t_cur - t_prev);
+
+  // Add current reading and update angles
+  out_angle_vec.push(enc2_count/ENC2_CPD);
+  out_angle = out_angle_vec.get_avg();
+  out_angle_diff = out_angle_vec.get_avg_diff()/float(t_cur - t_prev);
 
   // Save previous time
   t_prev = t_cur;
