@@ -28,8 +28,8 @@
 // Operating modes
 enum op_mode { ALL_OFF, PID_MODE, SEA_MODE, SINE_MODE };
 op_mode mode = SEA_MODE;
-int sm1_go = 1;
-int sm2_go = 1;
+int sm1_go = 0;
+int sm2_go = 0;
 
 // CPG variables
 unsigned long t_reset = 0;
@@ -76,6 +76,8 @@ void setup()  {
   delay(10);
   setup_encoders();
 
+  moveFootServo(middleFootServo, SERVO_IN);
+  
   // Blink LED when done
   pinMode(17,OUTPUT);  // RXLED on arduino pro micro
   for (int i = 0; i<3; ++i) {
@@ -102,9 +104,9 @@ void loop() {
   // Step through state machines
   unsigned long t_stamp = micros();
   if (sm1_go) {
-  //  sm1_condition(t_stamp);
+    sm1_condition(t_stamp);
   //  sm1_action();
-    des_torque = 10.*sin(millis()/250.);
+//    des_torque = 10.*sin(millis()/250.);
   }
   if (sm2_go) {
     sm2_condition(t_stamp, m1_angle+out_angle);

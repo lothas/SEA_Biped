@@ -74,43 +74,17 @@ void read_command(char cmd[8]) {
   if (cmd[0] != STX) Serial.println("Transmission error");
 
   switch (cmd[1]) {
-    // ----------------- GLOBAL CONTROL COMMANDS -----------------
-    case ETX: // ///// Emergency stop command /////////////////
-      {
-      error_type = 1;
-      emergency_stop();
-      }
-      break;
-    case 'e': // ///////// Clear error command //////////////////
-      {
-      if (cmd[2] == ETX) {
-        mode = SEA_MODE;
-        m1_des_angle = m1_angle;
-        error_type = 0;
-        Serial.println("Error cleared");
-      }
-      else Serial.println("Transmission error");
-      }
-      break;
-    case 'r': // //////// Clear angles command ///////////////////
-      {
-      if (cmd[2] == ETX) {
-        mode = SEA_MODE;
-        reset_encoders();
-        Serial.println("Angles cleared");
-      }
-      else Serial.println("Transmission error");
-      }
-      break;
-    case '8': // //////////// Go command //////////////////////
+    case '1': // ////// Go to active mode command //////////////
       {
       if (cmd[2] == ETX) {
         Serial.println("Start walking");
         mode = SEA_MODE;
         m1_des_angle = m1_angle;
-        sm1_go = 0;
-        sm2_go = 0;
-        error_type = 0;
+        des_torque = 0;
+        
+        // Start state machines
+        sm1_go = 1;
+        sm2_go = 1;
 
         // Retract middle foot
         moveFootServo(middleFootServo, SERVO_OUT);
@@ -118,7 +92,25 @@ void read_command(char cmd[8]) {
       else Serial.println("Transmission error");
       }
       break;
-    case '9': // //////////// Rest command //////////////////////
+    case '2': // ///// Go to passive mode command //////////////
+      {
+      if (cmd[2] == ETX) {
+        Serial.println("Passive joint");
+        mode = SEA_MODE;
+        m1_des_angle = m1_angle;
+        des_torque = 0;
+        
+        // Stop state machines
+        sm1_go = 0;
+        sm2_go = 0;
+
+        // Retract middle foot
+        moveFootServo(middleFootServo, SERVO_OUT);
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case '3': // /////// Go to rest mode command ///////////////
       {
       if (cmd[2] == ETX) {
         Serial.println("Go to rest position");
@@ -140,7 +132,7 @@ void read_command(char cmd[8]) {
       break;
       
     // ---------------- STATE MACHINE COMMANDS ------------------
-    case '1': // /////// Toggle SM1 command /////////////////////
+    case '4': // /////// Toggle SM1 command /////////////////////
       {
       if (cmd[2] == ETX) {
         sm1_go = !sm1_go;
@@ -149,11 +141,39 @@ void read_command(char cmd[8]) {
       else Serial.println("Transmission error");
       }
       break;
-    case '2': // /////// Toggle SM2 command /////////////////////
+    case '5': // /////// Toggle SM2 command /////////////////////
       {
       if (cmd[2] == ETX) {
         sm2_go = !sm2_go;
         Serial.println(sm2_go ? "Turned State Machine 2 ON" : "Turned State Machine 2 OFF");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+      
+    // ----------------- GLOBAL CONTROL COMMANDS -----------------
+    case ETX: // ///// Emergency stop command /////////////////
+      {
+      error_type = 1;
+      emergency_stop(); // also sets mode to ALL_OFF
+      }
+      break;
+    case 'e': // ///////// Clear error command //////////////////
+      {
+      if (cmd[2] == ETX) {
+        error_type = 0;
+        Serial.println("Error cleared");
+      }
+      else Serial.println("Transmission error");
+      }
+      break;
+    case 'r': // //////// Clear angles command ///////////////////
+      {
+      if (cmd[2] == ETX) {
+        reset_encoders();
+        m1_des_angle = m1_angle;
+        des_torque = 0;
+        Serial.println("Angles cleared");
       }
       else Serial.println("Transmission error");
       }

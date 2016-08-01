@@ -3,7 +3,7 @@
 
 #define CPG_PERIOD            1500000.0
 #define DOUBLE_STANCE_DUR     200000
-#define HIP_THRESH            8.0
+#define HIP_THRESH            5.0
 
 extern int error_type;
 extern float des_torque;
@@ -19,11 +19,11 @@ unsigned long sm1_t0 = 0;
 unsigned long sm2_t0 = 0;
 
 float pulse1_st = 0.1;
-float pulse1_dt = 0.1;
-float pulse1_amp = 00;
+float pulse1_dt = 0.2;
+float pulse1_amp = 8;
 float pulse2_st = 0.6;
-float pulse2_dt = 0.1;
-float pulse2_amp = -0;
+float pulse2_dt = 0.2;
+float pulse2_amp = -8;
 
 // State conditions function
 void sm1_condition(unsigned long t_stamp) {

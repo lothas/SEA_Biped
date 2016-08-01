@@ -126,5 +126,7 @@ void reset_encoders() {
   enc2_count = 0;
   m1_angle_vec.fill_with(0);
   out_angle_vec.fill_with(0);
+  m1_angle = 0;
+  out_angle = 0;
 }
 
