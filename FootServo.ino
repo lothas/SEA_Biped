@@ -22,4 +22,3 @@ void moveFootServo(Servo footServo, int dist) {
   //footServo.detach();                       // save power by detaching the servo (check if neccessary??)
 }
 
-//TODO: 1) write a function to convert servo angle to actual foot extension ([mm])

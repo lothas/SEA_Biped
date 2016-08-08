@@ -77,7 +77,7 @@ void read_command(char cmd[8]) {
     case '1': // ////// Go to active mode command //////////////
       {
       if (cmd[2] == ETX) {
-        Serial.println("Start walking");
+        Serial1.println("Start walking");
         mode = SEA_MODE;
         m1_des_angle = m1_angle;
         des_torque = 0;
@@ -95,7 +95,7 @@ void read_command(char cmd[8]) {
     case '2': // ///// Go to passive mode command //////////////
       {
       if (cmd[2] == ETX) {
-        Serial.println("Passive joint");
+        Serial1.println("Passive mode");
         mode = SEA_MODE;
         m1_des_angle = m1_angle;
         des_torque = 0;
@@ -113,7 +113,7 @@ void read_command(char cmd[8]) {
     case '3': // /////// Go to rest mode command ///////////////
       {
       if (cmd[2] == ETX) {
-        Serial.println("Go to rest position");
+        Serial1.println("Go to rest position");
         // Stop state machines
         sm1_go = 0;
         sm2_go = 0;
@@ -136,7 +136,7 @@ void read_command(char cmd[8]) {
       {
       if (cmd[2] == ETX) {
         sm1_go = !sm1_go;
-        Serial.println(sm1_go ? "Turned State Machine 1 ON" : "Turned State Machine 1 OFF");
+        Serial1.println(sm1_go ? "Turned State Machine 1 ON" : "Turned State Machine 1 OFF");
       }
       else Serial.println("Transmission error");
       }
@@ -145,7 +145,7 @@ void read_command(char cmd[8]) {
       {
       if (cmd[2] == ETX) {
         sm2_go = !sm2_go;
-        Serial.println(sm2_go ? "Turned State Machine 2 ON" : "Turned State Machine 2 OFF");
+        Serial1.println(sm2_go ? "Turned State Machine 2 ON" : "Turned State Machine 2 OFF");
       }
       else Serial.println("Transmission error");
       }

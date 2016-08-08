@@ -1,9 +1,9 @@
-#define SM1_STATES 5
-#define SM2_STATES 4
+#define SM1_STATES 9 // SM1- sending torque pulses to SEA
+#define SM2_STATES 4 // SM2- reflexes
 
-#define CPG_PERIOD            1500000.0
-#define DOUBLE_STANCE_DUR     200000
-#define HIP_THRESH            5.0
+#define CPG_PERIOD            1600000.0 // microseconds
+#define DOUBLE_STANCE_DUR     200000 // microseconds
+#define HIP_THRESH            1.0 // minimum aperture angle[deg] to switch stance legs
 
 extern int error_type;
 extern float des_torque;
@@ -18,32 +18,52 @@ unsigned int sm2_state = 0;
 unsigned long sm1_t0 = 0;
 unsigned long sm2_t0 = 0;
 
-float pulse1_st = 0.1;
-float pulse1_dt = 0.2;
-float pulse1_amp = 8;
-float pulse2_st = 0.6;
-float pulse2_dt = 0.2;
-float pulse2_amp = -8;
+// Pulses parameters for SM1
+float pulse1_st =  0.05; // start (phase 0..1)
+float pulse1_dt =   0.1; // duration
+float pulse1_amp =   12; // amplitude
+float pulse2_st =  0.35;
+float pulse2_dt =   0.1;
+float pulse2_amp =  -12;
+float pulse3_st =  0.55;
+float pulse3_dt =   0.1;
+float pulse3_amp =  -12;
+float pulse4_st =  0.85;
+float pulse4_dt =   0.1;
+float pulse4_amp =   12;
 
 // State conditions function
 void sm1_condition(unsigned long t_stamp) {
-  float phase = float(t_stamp - sm1_t0)/CPG_PERIOD;
+  // function which check the transitions between states in SM1
+  float phase = float(t_stamp - sm1_t0)/CPG_PERIOD; // calc the phase
 //  Serial.println("SM1 state: "+String(sm1_state)+", phase: "+String(phase));
 
   switch (sm1_state) {
     case 0: // Free swing after CPG reset
       if (phase>pulse1_st) sm1_change(t_stamp);
       break;
-    case 1: // First pulse is active
+    case 1: // First extensor pulse is active
       if (phase>pulse1_st+pulse1_dt) sm1_change(t_stamp);
       break;
     case 2: // Free swing between pulses
       if (phase>pulse2_st) sm1_change(t_stamp);
       break;
-    case 3: // Second pulse is active
+    case 3: // First flexor pulse is active
       if (phase>pulse2_st+pulse2_dt) sm1_change(t_stamp);
       break;
-    case 4: // Free swing before CPG reset
+    case 4: // Free swing between pulses
+      if (phase>pulse3_st) sm1_change(t_stamp);
+      break;
+    case 5: // Second extensor pulse is active
+      if (phase>pulse3_st+pulse3_dt) sm1_change(t_stamp);
+      break;
+    case 6: // Free swing between pulses
+      if (phase>pulse4_st) sm1_change(t_stamp);
+      break;
+    case 7: // Second flexor pulse is active
+      if (phase>pulse4_st+pulse4_dt) sm1_change(t_stamp);
+      break;
+    case 8: // Free swing before CPG reset
       if (phase>1) sm1_change(t_stamp);
       break;
   }
@@ -73,7 +93,19 @@ void sm1_change(unsigned long t_stamp) {
     case 3: // Second pulse is active
       des_torque = 0;
       break;
-    case 4: // Reset CPG
+    case 4: // Activate second pulse
+      des_torque = pulse3_amp;
+      break;
+    case 5: // Second pulse is active
+      des_torque = 0;
+      break;
+    case 6: // Activate second pulse
+      des_torque = pulse4_amp;
+      break;
+    case 7: // Second pulse is active
+      des_torque = 0;
+      break;
+    case 8: // Reset CPG
       sm1_t0 = t_stamp;
       break;
     default:
