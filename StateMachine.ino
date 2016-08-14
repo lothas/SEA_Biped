@@ -1,8 +1,8 @@
 #define SM1_STATES 9 // SM1- sending torque pulses to SEA
 #define SM2_STATES 4 // SM2- reflexes
 
-#define CPG_PERIOD            1600000.0 // microseconds
-#define DOUBLE_STANCE_DUR     200000 // microseconds
+#define CPG_PERIOD            1100000.0 // microseconds
+#define DOUBLE_STANCE_DUR     250000 // microseconds
 #define HIP_THRESH            1.0 // minimum aperture angle[deg] to switch stance legs
 
 extern int error_type;
@@ -21,16 +21,16 @@ unsigned long sm2_t0 = 0;
 // Pulses parameters for SM1
 float pulse1_st =  0.05; // start (phase 0..1)
 float pulse1_dt =   0.1; // duration
-float pulse1_amp =   12; // amplitude
+float pulse1_amp =   10; // amplitude
 float pulse2_st =  0.35;
 float pulse2_dt =   0.1;
-float pulse2_amp =  -12;
+float pulse2_amp =  -8;
 float pulse3_st =  0.55;
 float pulse3_dt =   0.1;
-float pulse3_amp =  -12;
+float pulse3_amp =  -10;
 float pulse4_st =  0.85;
 float pulse4_dt =   0.1;
-float pulse4_amp =   12;
+float pulse4_amp =   8;
 
 // State conditions function
 void sm1_condition(unsigned long t_stamp) {
